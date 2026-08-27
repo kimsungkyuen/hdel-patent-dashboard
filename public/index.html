@@ -45,7 +45,7 @@
 <!-- ================= MAIN CONTENT WRAPPER ================= -->
 <main class="dash-container">
 
-  <!-- 1. 핵심 4대 KPI 카드 그리드 (출원+심사 합산 '출원'으로 단일화) -->
+  <!-- 1. 핵심 4대 KPI 카드 그리드 (소멸/만료 제외한 순수 유효 권리 집계) -->
   <section class="kpi-grid">
     <!-- 총 보유 지식재산권 -->
     <div class="kpi-card highlight-green">
@@ -55,12 +55,12 @@
           <span class="kpi-title">총 보유 지식재산권</span>
           <span class="badge-filter-notice">유효 권리</span>
         </div>
-        <div class="kpi-val"><span class="num" id="kpi-total-valid">1,248</span><small>건</small></div>
+        <div class="kpi-val"><span class="num" id="kpi-total-valid">1,132</span><small>건</small></div>
         <span class="kpi-sub"><i class="fa-solid fa-shield-check text-green"></i> 현재 보유 유효 권리 총계</span>
       </div>
     </div>
 
-    <!-- 출원 (출원+심사진행 합산) -->
+    <!-- 출원 (출원+심사진행 합산 단일화) -->
     <div class="kpi-card highlight-blue">
       <div class="kpi-icon"><i class="fa-solid fa-file-signature"></i></div>
       <div class="kpi-info">
@@ -75,7 +75,7 @@
       <div class="kpi-icon"><i class="fa-solid fa-certificate"></i></div>
       <div class="kpi-info">
         <span class="kpi-title">등록</span>
-        <div class="kpi-val"><span class="num text-green" id="kpi-registration">986</span><small>건</small></div>
+        <div class="kpi-val"><span class="num text-green" id="kpi-registration">944</span><small>건</small></div>
         <span class="kpi-sub">설정등록 완료 및 권리 유지</span>
       </div>
     </div>
@@ -111,7 +111,7 @@
         <div class="flow-step-2 finish" id="step-reg">
           <div class="step-badge">STEP 2</div>
           <div class="step-name">등록</div>
-          <div class="step-val text-green" id="pipe-reg-val">986건</div>
+          <div class="step-val text-green" id="pipe-reg-val">944건</div>
           <div class="step-desc">설정등록 완료 및 독점 배타권 확보</div>
         </div>
       </div>
@@ -120,11 +120,11 @@
 
   <!-- 3. 권리 유형별 & 글로벌 국가별 분포 현황 차트 -->
   <section class="chart-row">
-    <!-- 권리 유형별 분포 -->
+    <!-- 권리 유형별 분포 (유효 권리 기준: 실용신안 2건 등) -->
     <div class="chart-card flex-1">
       <div class="card-head">
         <h3><i class="fa-solid fa-chart-pie text-green"></i> 권리 유형별 분포</h3>
-        <span class="badge-total">총 1,248건</span>
+        <span class="badge-total" id="badge-total-count">총 1,132건</span>
       </div>
       <div class="type-progress-wrap">
         <div class="type-row">
@@ -132,8 +132,8 @@
             <span class="type-dot bg-patent"></span>
             <b>특허 (Patent)</b>
           </div>
-          <div class="bar-outer"><div class="bar-inner bg-patent" id="bar-patent" style="width: 59.5%;"></div></div>
-          <div class="type-val"><b id="val-patent">742건</b> <span id="ratio-patent">(59.5%)</span></div>
+          <div class="bar-outer"><div class="bar-inner bg-patent" id="bar-patent" style="width: 65.5%;"></div></div>
+          <div class="type-val"><b id="val-patent">742건</b> <span id="ratio-patent">(65.5%)</span></div>
         </div>
 
         <div class="type-row">
@@ -141,8 +141,8 @@
             <span class="type-dot bg-trademark"></span>
             <b>상표 (Trademark)</b>
           </div>
-          <div class="bar-outer"><div class="bar-inner bg-trademark" id="bar-trademark" style="width: 16.2%;"></div></div>
-          <div class="type-val"><b id="val-trademark">202건</b> <span id="ratio-trademark">(16.2%)</span></div>
+          <div class="bar-outer"><div class="bar-inner bg-trademark" id="bar-trademark" style="width: 17.8%;"></div></div>
+          <div class="type-val"><b id="val-trademark">202건</b> <span id="ratio-trademark">(17.8%)</span></div>
         </div>
 
         <div class="type-row">
@@ -150,8 +150,8 @@
             <span class="type-dot bg-design"></span>
             <b>디자인 (Design)</b>
           </div>
-          <div class="bar-outer"><div class="bar-inner bg-design" id="bar-design" style="width: 14.9%;"></div></div>
-          <div class="type-val"><b id="val-design">186건</b> <span id="ratio-design">(14.9%)</span></div>
+          <div class="bar-outer"><div class="bar-inner bg-design" id="bar-design" style="width: 16.4%;"></div></div>
+          <div class="type-val"><b id="val-design">186건</b> <span id="ratio-design">(16.4%)</span></div>
         </div>
 
         <div class="type-row">
@@ -159,8 +159,8 @@
             <span class="type-dot bg-utility"></span>
             <b>실용신안 (Utility)</b>
           </div>
-          <div class="bar-outer"><div class="bar-inner bg-utility" id="bar-utility" style="width: 9.5%;"></div></div>
-          <div class="type-val"><b id="val-utility">118건</b> <span id="ratio-utility">(9.5%)</span></div>
+          <div class="bar-outer"><div class="bar-inner bg-utility" id="bar-utility" style="width: 0.2%; min-width: 4px;"></div></div>
+          <div class="type-val"><b id="val-utility">2건</b> <span id="ratio-utility">(0.2%)</span></div>
         </div>
       </div>
     </div>
@@ -230,6 +230,7 @@
         <div class="focus-top-bar">
           <div class="focus-section-label">
             <i class="fa-solid fa-star text-yellow"></i> <b>경영진 핵심 Focus 분야</b>
+            <span class="focus-hint">(카드를 클릭하면 매핑된 등록 특허 목록이 표시됩니다)</span>
           </div>
           <div class="focus-actions">
             <button class="btn-gear-config" onclick="openKeyFocusModal()" title="핵심 Focus 기술분야 설정">
@@ -281,6 +282,7 @@
           <div class="product-filter-group">
             <div class="explorer-label">
               <i class="fa-solid fa-cubes text-green"></i> <b>사내 31대 제품 및 적용 특허</b>
+              <span class="focus-hint">(제품 카드를 클릭하면 매핑된 등록 특허 및 청구항이 표시됩니다)</span>
             </div>
             <div class="product-category-filters" id="productCategoryFilters">
               <button class="chip active" onclick="filterProducts('ALL')">전체 (31)</button>
@@ -308,6 +310,7 @@
           <div class="taxonomy-filter-group">
             <div class="explorer-label">
               <i class="fa-solid fa-network-wired text-green"></i> <b>사내 표준 기술분류 체계 (134개 소분류)</b>
+              <span class="focus-hint">(소분류 항목을 클릭하면 매핑된 등록 특허 목록이 표시됩니다)</span>
             </div>
             <div class="taxonomy-category-filters" id="taxonomyCategoryFilters">
               <button class="chip active" onclick="filterTaxonomyCategory('ALL')">전체 (134)</button>
@@ -389,7 +392,7 @@
 
       <div class="modal-section-title">
         <i class="fa-solid fa-certificate text-green"></i>
-        <span>적용 기술 피처 및 등록특허 청구항 증거 (<b id="modalFeatureCount">0</b>건)</span>
+        <span>적용 기술 및 등록특허 목록 (<b id="modalFeatureCount">0</b>건)</span>
       </div>
 
       <div class="feature-evidence-list" id="modalFeatureList">
@@ -403,7 +406,119 @@
   </div>
 </div>
 
-<!-- ================= 모달 3: 특허로 REST-API 설정 모달 ================= -->
+<!-- ================= 모달 3: 📋 분류/기술별 특허 목록 팝업 모달 ================= -->
+<div class="modal-overlay hide" id="patentListModal" onclick="if(event.target===this)closePatentListModal()">
+  <div class="modal-window modal-wide">
+    <div class="modal-header">
+      <div class="modal-title-wrap">
+        <i class="fa-solid fa-list-check text-green" style="font-size:22px;"></i>
+        <div>
+          <h2 id="patentListModalTitle">보유 특허 목록</h2>
+          <span class="modal-sub" id="patentListModalSub">매핑된 지식재산권 현황</span>
+        </div>
+      </div>
+      <button class="modal-close-btn" onclick="closePatentListModal()"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+
+    <div class="modal-body">
+      <div class="patent-table-filter-bar">
+        <span class="patent-count-text">총 <b id="patentListTotalCount" class="text-green">0</b>건의 권리가 조회되었습니다.</span>
+        <span class="click-guide-hint"><i class="fa-solid fa-hand-pointer"></i> <b>등록번호</b>를 클릭하면 특허로/KIPRIS 상세 정보가 표시됩니다.</span>
+      </div>
+
+      <div class="patent-list-table-wrap">
+        <table class="patent-table">
+          <thead>
+            <tr>
+              <th style="width: 130px;">권리구분 / 상태</th>
+              <th style="width: 160px;">등록번호 (클릭)</th>
+              <th style="width: 160px;">출원번호</th>
+              <th>발명의 명칭 (Title)</th>
+              <th style="width: 110px;">등록일자</th>
+              <th style="width: 80px;">상세</th>
+            </tr>
+          </thead>
+          <tbody id="patentListTableBody">
+            <!-- JS 동적 렌더링 -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn-secondary" onclick="closePatentListModal()">닫기</button>
+    </div>
+  </div>
+</div>
+
+<!-- ================= 모달 4: 🔍 특허 상세 정보 (특허로 Live API / KIPRIS 연동) 모달 ================= -->
+<div class="modal-overlay hide" id="patentDetailModal" onclick="if(event.target===this)closePatentDetailModal()">
+  <div class="modal-window modal-wide">
+    <div class="modal-header">
+      <div class="modal-title-wrap">
+        <i class="fa-solid fa-certificate text-green" style="font-size:24px;"></i>
+        <div>
+          <h2 id="detailPatentTitle">특허 발명의 명칭</h2>
+          <span class="modal-sub" id="detailPatentSub">현대엘리베이터 주식회사 · 특허청 KIPRIS 실시간 연동</span>
+        </div>
+      </div>
+      <button class="modal-close-btn" onclick="closePatentDetailModal()"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+
+    <div class="modal-body">
+      <!-- 특허 핵심 서지 메타 그리드 -->
+      <div class="patent-meta-grid">
+        <div class="meta-item">
+          <span class="meta-k">등록번호</span>
+          <span class="meta-v text-green highlight-mono" id="detailRegNo">특0119656</span>
+        </div>
+        <div class="meta-item">
+          <span class="meta-k">출원번호</span>
+          <span class="meta-v highlight-mono" id="detailAppNo">특1994-019668</span>
+        </div>
+        <div class="meta-item">
+          <span class="meta-k">권리구분 / 상태</span>
+          <span class="meta-v" id="detailRightType"><span class="badge-patent-tag">특허</span> <span class="badge-status-reg">등록유지</span></span>
+        </div>
+        <div class="meta-item">
+          <span class="meta-k">등록일자 / 출원일자</span>
+          <span class="meta-v" id="detailDates">1997-08-05 (출원: 1994-08-10)</span>
+        </div>
+      </div>
+
+      <!-- 요약 (초록) 섹션 -->
+      <div class="detail-section">
+        <div class="detail-section-head">
+          <i class="fa-solid fa-file-lines text-green"></i>
+          <b>발명의 요약 (초록 / Abstract)</b>
+        </div>
+        <div class="detail-box" id="detailAbstract">
+          특허 요약 내용이 표시됩니다.
+        </div>
+      </div>
+
+      <!-- 대표 청구항 섹션 -->
+      <div class="detail-section">
+        <div class="detail-section-head">
+          <i class="fa-solid fa-scale-balanced text-green"></i>
+          <b>대표 청구항 (Claim 1)</b>
+        </div>
+        <div class="detail-box claim-box" id="detailClaim">
+          【특허청구범위 제1항】 특허 청구항 원문이 표시됩니다.
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <a href="#" target="_blank" class="btn-kipris" id="btnKiprisLink">
+        <i class="fa-solid fa-arrow-up-right-from-square"></i> KIPRIS 특허정보검색 원문 조회
+      </a>
+      <button class="btn-secondary" onclick="closePatentDetailModal()">닫기</button>
+    </div>
+  </div>
+</div>
+
+<!-- ================= 모달 5: 특허로 REST-API 설정 모달 ================= -->
 <div class="modal-overlay hide" id="kipoModal" onclick="if(event.target===this)closeKipoModal()">
   <div class="modal-window" style="max-width: 520px;">
     <div class="modal-header">
