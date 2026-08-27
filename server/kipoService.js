@@ -1,6 +1,8 @@
 // kipoService.js - 특허로 REST Web API 통신 및 경영진 집계 엔진 모듈
 const https = require('https');
 const http = require('http');
+const fs = require('fs');
+const path = require('path');
 const querystring = require('querystring');
 const { URL } = require('url');
 const { mockApplications, mockRegistrations, mockDeadlines, mockTrials } = require('./mockData');
@@ -483,6 +485,53 @@ async function getExecutiveSummary() {
 }
 
 /**
+ * 사내 IP 데이터 로드 및 제공 메서드 (HDEL IP Atlas DB 기반)
+ */
+let cachedCompanyData = null;
+function getCompanyData() {
+  if (!cachedCompanyData) {
+    try {
+      const dataPath = path.join(__dirname, 'companyData.json');
+      if (fs.existsSync(dataPath)) {
+        cachedCompanyData = JSON.parse(fs.readFileSync(dataPath, 'utf-8'));
+      }
+    } catch (e) {
+      console.error('Failed to load companyData.json:', e);
+      cachedCompanyData = { products: [], clusters: [], taxonomy: [], feature_family_mappings: [], patents: [] };
+    }
+  }
+  return cachedCompanyData;
+}
+
+function getCompanyProducts() {
+  const data = getCompanyData();
+  return data.products || [];
+}
+
+function getProductDetail(productId) {
+  const data = getCompanyData();
+  const product = (data.products || []).find(p => p.product_id === productId);
+  if (!product) return null;
+
+  const features = (data.feature_family_mappings || []).filter(m => m.product_id === productId);
+  return {
+    product,
+    featureCount: features.length,
+    features
+  };
+}
+
+function getStrategicClusters() {
+  const data = getCompanyData();
+  return data.clusters || [];
+}
+
+function getCompanyTaxonomy() {
+  const data = getCompanyData();
+  return data.taxonomy || [];
+}
+
+/**
  * 기술분류 업데이트 함수 (사용자가 부여할 기술분류 저장)
  */
 function updateTechCategory(appNo, category, subCategory = '') {
@@ -508,6 +557,10 @@ module.exports = {
   getExecutiveSummary,
   updateTechCategory,
   getAllTechCategories,
+  getCompanyProducts,
+  getProductDetail,
+  getStrategicClusters,
+  getCompanyTaxonomy,
   classifyStage,
   classifyCountry,
   getTechCategory,
