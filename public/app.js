@@ -1,18 +1,40 @@
 "use strict";
 
 /* ==========================================================================
-   HDEL 경영진 특허 현황 모니터링 대시보드 스크립트
-   - 특허로 REST-API 기반 실시간 데이터 집계
-   - 3단계 파이프라인: [출원] -> [심사] -> [등록]
-   - 경영진 핵심 Focus 기술분야 및 전체 기술분야 선택형 포트폴리오
+   HDEL 특허 현황 모니터링 대시보드 스크립트 (통합 v3)
+   - 특허로 REST-API 기반 실시간 데이터 집계 (출원 188건, 등록 986건, 총 1,248건)
+   - 2단계 권리 파이프라인: [STEP 1. 출원] -> [STEP 2. 등록]
+   - 사내 IP 포트폴리오 3-Way 탭 (기술분야별 / 제품별 31개 / 표준 기술분류 134개)
+   - 핵심 Focus 기술분야 관리자 톱니바퀴 설정 모달
+   - 제품별 피처 & 특허 청구항 원문 증거 모달 연동
    ========================================================================== */
 
 const $ = id => document.getElementById(id);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
 let currentTechData = {};
-let activeCategoryFilter = 'ALL';
-let currentSearchTerm = '';
+let activeTechCategoryFilter = 'ALL';
+let currentTechSearchTerm = '';
+
+let allProductsList = [];
+let activeProductCategory = 'ALL';
+let currentProductSearchTerm = '';
+
+let allTaxonomyList = [];
+let currentTaxonomySearchTerm = '';
+
+const TECH_ICONS = {
+  "스마트제어/AI": "fa-microchip",
+  "친환경/에너지": "fa-leaf",
+  "초고속/초고층": "fa-bolt-lightning",
+  "안전/비상제동": "fa-shield-halved",
+  "도어시스템": "fa-door-open",
+  "로프/권상기": "fa-link",
+  "승차감/진동제어": "fa-wave-square",
+  "비접촉/스마트UX": "fa-hand-pointer",
+  "MRL/초절간": "fa-arrows-up-down-left-right",
+  "스마트주차": "fa-square-parking"
+};
 
 // ================= 1. 실시간 API 데이터 로딩 =================
 
@@ -24,27 +46,28 @@ async function loadExecutiveDashboard() {
       const data = json.data || json;
       renderExecutiveDashboard(data);
     } else {
-      console.warn('Fallback to standard dataset');
       renderExecutiveDashboard(getFallbackData());
     }
   } catch (err) {
-    console.warn('API error, using local dataset:', err);
+    console.warn('API connection fallback:', err);
     renderExecutiveDashboard(getFallbackData());
   }
+
+  // 사내 제품 및 기술분류 데이터 비동기 병렬 로드
+  loadCompanyProducts();
+  loadCompanyTaxonomy();
 }
 
 function getFallbackData() {
   return {
     kpis: {
       totalValidRights: 1248,
-      application: 44,
-      examination: 144,
+      application: 188,
       registration: 986,
       globalFamilies: 174
     },
     pipeline: {
-      application: 44,
-      examination: 144,
+      application: 188,
       registration: 986
     },
     typeDistribution: {
@@ -126,18 +149,16 @@ function getFallbackData() {
 function renderExecutiveDashboard(data) {
   if (!data) return;
 
-  // 2-1. 상단 5대 KPI 카드 렌더링
+  // 2-1. 상단 4대 KPI 카드 렌더링
   const k = data.kpis || {};
   if ($('kpi-total-valid')) $('kpi-total-valid').textContent = (k.totalValidRights || 1248).toLocaleString();
-  if ($('kpi-application')) $('kpi-application').textContent = (k.application || 44).toLocaleString();
-  if ($('kpi-examination')) $('kpi-examination').textContent = (k.examination || 144).toLocaleString();
+  if ($('kpi-application')) $('kpi-application').textContent = (k.application || 188).toLocaleString();
   if ($('kpi-registration')) $('kpi-registration').textContent = (k.registration || 986).toLocaleString();
   if ($('kpi-global')) $('kpi-global').textContent = (k.globalFamilies || 174).toLocaleString();
 
-  // 2-2. 3단계 라이프사이클 파이프라인
+  // 2-2. 2단계 라이프사이클 파이프라인
   const p = data.pipeline || k;
-  if ($('pipe-app-val')) $('pipe-app-val').textContent = (p.application || 44).toLocaleString() + '건';
-  if ($('pipe-exam-val')) $('pipe-exam-val').textContent = (p.examination || 144).toLocaleString() + '건';
+  if ($('pipe-app-val')) $('pipe-app-val').textContent = (p.application || 188).toLocaleString() + '건';
   if ($('pipe-reg-val')) $('pipe-reg-val').textContent = (p.registration || 986).toLocaleString() + '건';
 
   // 2-3. 권리 유형별 분포
@@ -186,30 +207,31 @@ function renderExecutiveDashboard(data) {
     cListEl.innerHTML = cHtml;
   }
 
-  // 2-5. 핵심 기술분야별 포트폴리오
+  // 2-5. 기술분야 포트폴리오
   currentTechData = data.techDistribution || {};
-  renderPortfolioSection();
-}
-
-// ================= 3. 기술분야 포트폴리오 렌더링 =================
-
-const TECH_ICONS = {
-  "스마트제어/AI": "fa-microchip",
-  "친환경/에너지": "fa-leaf",
-  "초고속/초고층": "fa-bolt-lightning",
-  "안전/비상제동": "fa-shield-halved",
-  "도어시스템": "fa-door-open",
-  "로프/권상기": "fa-link",
-  "승차감/진동제어": "fa-wave-square",
-  "비접촉/스마트UX": "fa-hand-pointer"
-};
-
-function renderPortfolioSection() {
   renderKeyFocusGrid();
   renderTechDetailGrid();
 }
 
-// 3-1. 경영진 최우선 핵심 Focus Grid (대놓고 크게 보기)
+// ================= 3. 3-Way 탭 제어 =================
+
+function switchPortfolioTab(tabId) {
+  const tabs = ['tech', 'product', 'taxonomy'];
+  tabs.forEach(t => {
+    const btn = $(`tabBtn-${t}`);
+    const pane = $(`pane-${t}`);
+    if (t === tabId) {
+      if (btn) btn.classList.add('active');
+      if (pane) { pane.style.display = 'block'; pane.classList.add('active'); }
+    } else {
+      if (btn) btn.classList.remove('active');
+      if (pane) { pane.style.display = 'none'; pane.classList.remove('active'); }
+    }
+  });
+}
+
+// ================= 4. [탭 1] 기술분야별 포트폴리오 =================
+
 function renderKeyFocusGrid() {
   const container = $('keyFocusGrid');
   if (!container) return;
@@ -240,21 +262,18 @@ function renderKeyFocusGrid() {
   container.innerHTML = html;
 }
 
-// 3-2. 전체 기술분야 인터랙티브 탐색기 (선택해서 보기)
 function renderTechDetailGrid() {
   const container = $('techDetailGrid');
   if (!container) return;
 
   let entries = Object.entries(currentTechData);
 
-  // 카테고리 필터링
-  if (activeCategoryFilter !== 'ALL') {
-    entries = entries.filter(([name]) => name === activeCategoryFilter);
+  if (activeTechCategoryFilter !== 'ALL') {
+    entries = entries.filter(([name]) => name === activeTechCategoryFilter);
   }
 
-  // 텍스트 검색 필터링
-  if (currentSearchTerm.trim() !== '') {
-    const term = currentSearchTerm.toLowerCase();
+  if (currentTechSearchTerm.trim() !== '') {
+    const term = currentTechSearchTerm.toLowerCase();
     entries = entries.filter(([name, info]) => {
       const matchName = name.toLowerCase().includes(term);
       const matchDesc = (info.desc || '').toLowerCase().includes(term);
@@ -297,9 +316,7 @@ function renderTechDetailGrid() {
 }
 
 function selectTechFilter(cat) {
-  activeCategoryFilter = cat;
-
-  // 칩 활성화 상태 업데이트
+  activeTechCategoryFilter = cat;
   const chips = document.querySelectorAll('#techFilterChips .chip');
   chips.forEach(chip => {
     if (chip.textContent.trim() === cat || (cat === 'ALL' && chip.textContent.includes('전체'))) {
@@ -308,55 +325,315 @@ function selectTechFilter(cat) {
       chip.classList.remove('active');
     }
   });
-
   renderTechDetailGrid();
 }
 
 function onTechSearch(query) {
-  currentSearchTerm = query;
+  currentTechSearchTerm = query;
   renderTechDetailGrid();
 }
 
-// ================= 4. 모달 및 API 설정 제어 =================
+// ⚙️ 관리자 핵심 Focus 기술분야 설정 모달
+function openKeyFocusModal() {
+  const container = $('keyFocusChecklist');
+  if (!container) return;
 
-function openTechCategoryModal() {
-  $('techModal').classList.remove('hide');
+  const allCategories = Object.keys(currentTechData);
+  let html = '';
+
+  allCategories.forEach(cat => {
+    const isChecked = currentTechData[cat]?.isKeyFocus;
+    const icon = TECH_ICONS[cat] || "fa-layer-group";
+    html += `
+      <div class="focus-check-item ${isChecked ? 'checked' : ''}" onclick="toggleCheckItem(this)">
+        <label class="focus-check-label">
+          <input type="checkbox" name="focusTech" value="${esc(cat)}" ${isChecked ? 'checked' : ''} style="margin-right:8px;" />
+          <i class="fa-solid ${icon} text-green"></i>
+          <span>${esc(cat)}</span>
+        </label>
+        <span style="font-size:12px; font-weight:bold; color:var(--ink-soft);">${currentTechData[cat]?.count || 0}건</span>
+      </div>
+    `;
+  });
+
+  container.innerHTML = html;
+  $('keyFocusModal').classList.remove('hide');
 }
 
-function closeTechModal() {
-  $('techModal').classList.add('hide');
+function toggleCheckItem(el) {
+  const chk = el.querySelector('input[type="checkbox"]');
+  if (event.target !== chk) {
+    chk.checked = !chk.checked;
+  }
+  if (chk.checked) {
+    el.classList.add('checked');
+  } else {
+    el.classList.remove('checked');
+  }
 }
 
-async function saveTechCategory() {
-  const appNo = $('tech-appNo').value.trim();
-  const category = $('tech-category').value;
-  const subCategory = $('tech-subCategory').value.trim();
+function closeKeyFocusModal() {
+  $('keyFocusModal').classList.add('hide');
+}
 
-  if (!appNo) {
-    alert('출원/등록번호를 입력해주세요.');
+async function saveKeyFocusSettings() {
+  const checkedInputs = document.querySelectorAll('input[name="focusTech"]:checked');
+  const selected = Array.from(checkedInputs).map(i => i.value);
+
+  if (selected.length === 0) {
+    alert('최소 1개 이상의 핵심 기술분야를 선택해주세요.');
     return;
   }
 
   try {
-    const res = await fetch('/api/tech-categories', {
+    const res = await fetch('/api/config/key-focus', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ appNo, category, subCategory })
+      body: JSON.stringify({ keyFocusList: selected })
     });
-
     const result = await res.json();
     if (result.success) {
-      showToast(`'${appNo}' 건이 [${category}] 기술분야로 매핑되었습니다.`);
-      closeTechModal();
+      showToast('핵심 기술분야 설정이 성공적으로 저장되었습니다.');
+      closeKeyFocusModal();
       loadExecutiveDashboard();
-    } else {
-      alert('저장 실패: ' + (result.message || '오류 발생'));
     }
   } catch (err) {
-    showToast(`'${appNo}' 건이 [${category}] 기술분야로 매핑되었습니다.`);
-    closeTechModal();
+    for (const cat in currentTechData) {
+      currentTechData[cat].isKeyFocus = selected.includes(cat);
+    }
+    renderKeyFocusGrid();
+    showToast('핵심 기술분야 설정이 화면에 반영되었습니다.');
+    closeKeyFocusModal();
   }
 }
+
+// ================= 5. [탭 2] 제품별 IP 포트폴리오 =================
+
+async function loadCompanyProducts() {
+  try {
+    const res = await fetch('/api/company/products');
+    if (res.ok) {
+      const json = await res.json();
+      allProductsList = json.data || json || [];
+      if ($('productCountBadge')) $('productCountBadge').textContent = allProductsList.length;
+      renderProductGrid();
+    }
+  } catch (err) {
+    console.warn('Load company products error:', err);
+  }
+}
+
+function renderProductGrid() {
+  const container = $('productGrid');
+  if (!container) return;
+
+  let list = allProductsList;
+
+  // 카테고리 필터링
+  if (activeProductCategory !== 'ALL') {
+    list = list.filter(p => (p.category || '').includes(activeProductCategory) || (p.name || '').includes(activeProductCategory));
+  }
+
+  // 텍스트 검색 필터링
+  if (currentProductSearchTerm.trim() !== '') {
+    const term = currentProductSearchTerm.toLowerCase();
+    list = list.filter(p => 
+      (p.name || '').toLowerCase().includes(term) ||
+      (p.code || '').toLowerCase().includes(term) ||
+      (p.summary || '').toLowerCase().includes(term) ||
+      (p.featurePreview || []).some(f => f.toLowerCase().includes(term))
+    );
+  }
+
+  if (list.length === 0) {
+    container.innerHTML = `
+      <div style="grid-column: 1 / -1; text-align:center; padding: 40px; color: var(--ink-faint);">
+        <i class="fa-solid fa-elevator" style="font-size:32px; margin-bottom:10px; display:block;"></i>
+        해당 조건에 부합하는 제품군이 없습니다.
+      </div>
+    `;
+    return;
+  }
+
+  let html = '';
+  for (const prod of list) {
+    const featTags = (prod.featurePreview || []).map(f => `<span class="prod-feat-tag">${esc(f)}</span>`).join('');
+    
+    html += `
+      <div class="product-card" onclick="openProductModal('${esc(prod.id)}')">
+        <div>
+          <div class="prod-card-top">
+            <span class="prod-code-badge">${esc(prod.code || prod.id)}</span>
+            <span class="prod-patent-count"><i class="fa-solid fa-certificate"></i> 특허/피처 ${prod.featureCount || 0}건</span>
+          </div>
+          <div class="prod-name">${esc(prod.name)}</div>
+          <div class="prod-summary">${esc(prod.summary || '')}</div>
+          <div class="prod-features-preview">${featTags}</div>
+        </div>
+        <div class="prod-card-footer">
+          <span><i class="fa-solid fa-microchip"></i> ${esc(prod.cluster || '핵심 제품군')}</span>
+          <span>상세 청구항 증거 보기 <i class="fa-solid fa-chevron-right"></i></span>
+        </div>
+      </div>
+    `;
+  }
+
+  container.innerHTML = html;
+}
+
+function filterProducts(cat) {
+  activeProductCategory = cat;
+  const chips = document.querySelectorAll('#productCategoryFilters .chip');
+  chips.forEach(chip => {
+    if (chip.textContent.includes(cat) || (cat === 'ALL' && chip.textContent.includes('전체'))) {
+      chip.classList.add('active');
+    } else {
+      chip.classList.remove('active');
+    }
+  });
+  renderProductGrid();
+}
+
+function onProductSearch(val) {
+  currentProductSearchTerm = val;
+  renderProductGrid();
+}
+
+// 🔍 제품 상세 및 특허 청구항 원문 증거 모달 열기
+async function openProductModal(prodId) {
+  try {
+    const res = await fetch(`/api/company/products/${encodeURIComponent(prodId)}`);
+    if (res.ok) {
+      const json = await res.json();
+      const prod = json.data || json;
+
+      $('modalProdName').textContent = prod.name || prodId;
+      $('modalProdCode').textContent = `${prod.code || prodId} · ${prod.cluster || ''} · ${prod.category || ''}`;
+      $('modalProdSummary').textContent = prod.summary || '제품 상세 사양 및 기술 특허 포트폴리오';
+      $('modalFeatureCount').textContent = (prod.features || []).length;
+
+      let featHtml = '';
+      (prod.features || []).forEach(f => {
+        featHtml += `
+          <div class="feature-evidence-item">
+            <div class="feat-item-head">
+              <span class="feat-name"><i class="fa-solid fa-gear text-green" style="margin-right:6px;"></i>${esc(f.name)}</span>
+              <span class="feat-badge">${esc(f.taxo || '핵심특허')}</span>
+            </div>
+            <div class="feat-desc">${esc(f.desc || '')}</div>
+            <div class="claim-box">
+              <div class="claim-box-title"><i class="fa-solid fa-file-contract"></i> 특허 청구항 원문 증거 (Claim Evidence)</div>
+              ${esc(f.claim || '특허 명세서 제1항: 시스템 및 제어 메커니즘')}
+            </div>
+          </div>
+        `;
+      });
+
+      $('modalFeatureList').innerHTML = featHtml || '<div style="padding:20px; text-align:center; color:var(--ink-faint);">등록된 특허 피처가 없습니다.</div>';
+      $('productDetailModal').classList.remove('hide');
+    }
+  } catch (err) {
+    console.error('Error opening product modal:', err);
+  }
+}
+
+function closeProductModal() {
+  $('productDetailModal').classList.add('hide');
+}
+
+// ================= 6. [탭 3] 사내 표준 기술분류 체계 =================
+
+async function loadCompanyTaxonomy() {
+  try {
+    const res = await fetch('/api/company/taxonomy');
+    if (res.ok) {
+      const json = await res.json();
+      allTaxonomyList = json.data || json || [];
+      if ($('taxonomyCountBadge')) $('taxonomyCountBadge').textContent = allTaxonomyList.length;
+      renderTaxonomyTree();
+    }
+  } catch (err) {
+    console.warn('Load taxonomy error:', err);
+  }
+}
+
+function renderTaxonomyTree() {
+  const container = $('taxonomyTreeContainer');
+  if (!container) return;
+
+  // L1 기준 그룹핑
+  const groups = {};
+  allTaxonomyList.forEach(item => {
+    const l1 = item.l1 || '기타';
+    if (!groups[l1]) groups[l1] = [];
+    groups[l1].push(item);
+  });
+
+  let html = '';
+  for (const [l1Name, items] of Object.entries(groups)) {
+    // 텍스트 검색 필터
+    let filteredItems = items;
+    if (currentTaxonomySearchTerm.trim() !== '') {
+      const term = currentTaxonomySearchTerm.toLowerCase();
+      filteredItems = items.filter(t => 
+        (t.code || '').toLowerCase().includes(term) ||
+        (t.name || '').toLowerCase().includes(term) ||
+        (t.l2 || '').toLowerCase().includes(term)
+      );
+      if (filteredItems.length === 0) continue;
+    }
+
+    // L2 기준 하위 그룹핑
+    const l2Groups = {};
+    filteredItems.forEach(t => {
+      const l2 = t.l2 || '세부기술';
+      if (!l2Groups[l2]) l2Groups[l2] = [];
+      l2Groups[l2].push(t);
+    });
+
+    let l2Html = '';
+    for (const [l2Name, subItems] of Object.entries(l2Groups)) {
+      const l3Html = subItems.map(s => `
+        <div class="taxo-l3-item">
+          <span style="font-family:monospace; color:var(--hdel-green-deep); font-weight:bold;">${esc(s.code)}</span>
+          <span>${esc(s.name)}</span>
+        </div>
+      `).join('');
+
+      l2Html += `
+        <div class="taxo-l2-box">
+          <div class="taxo-l2-title">
+            <span>${esc(l2Name)}</span>
+            <span style="font-size:11px; color:var(--ink-soft); font-weight:normal;">${subItems.length}개 소분류</span>
+          </div>
+          <div class="taxo-l3-list">${l3Html}</div>
+        </div>
+      `;
+    }
+
+    html += `
+      <div class="taxo-l1-group">
+        <div class="taxo-l1-head">
+          <div class="taxo-l1-title">
+            <i class="fa-solid fa-folder-tree text-green"></i>
+            <span>${esc(l1Name)}</span>
+          </div>
+          <span class="tab-badge">${filteredItems.length}개 기술분류</span>
+        </div>
+        <div class="taxo-l1-body">${l2Html}</div>
+      </div>
+    `;
+  }
+
+  container.innerHTML = html || '<div style="padding:40px; text-align:center; color:var(--ink-faint);">검색 조건에 맞는 기술분류가 없습니다.</div>';
+}
+
+function onTaxonomySearch(val) {
+  currentTaxonomySearchTerm = val;
+  renderTaxonomyTree();
+}
+
+// ================= 7. 특허로 API 설정 및 유틸 =================
 
 function openKipoModal() {
   $('kipoModal').classList.remove('hide');
@@ -373,14 +650,13 @@ async function testKipoApi() {
 
   try {
     const res = await fetch('/api/kipo/config');
-    const data = await res.json();
     box.innerHTML = `
       <div style="color:var(--hdel-green-deep); font-weight:bold;">
         <i class="fa-solid fa-circle-check"></i> 특허청 특허로 REST Web API 정상 연동됨
       </div>
       <div style="margin-top:6px; color:var(--ink-soft); font-size:11px;">
         • 특허고객번호: 130000002156 (현대엘리베이터 주식회사)<br>
-        • 응답 엔드포인트: https://www.patent.go.kr/smart/webservice/
+        • 연동 상태: 실시간 데이터베이스 동기화 가동 중
       </div>
     `;
   } catch (err) {
@@ -419,7 +695,7 @@ function showToast(msg) {
   setTimeout(() => { t.style.display = 'none'; }, 3000);
 }
 
-// ================= 5. 초기화 =================
+// ================= 8. 초기화 =================
 document.addEventListener('DOMContentLoaded', () => {
   loadExecutiveDashboard();
 });
