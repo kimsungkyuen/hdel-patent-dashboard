@@ -1064,6 +1064,21 @@ body {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 16px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.taxonomy-filter-group {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.taxonomy-category-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
 }
 
 .taxonomy-tree-container {
@@ -1074,32 +1089,51 @@ body {
 
 .taxo-l1-group {
   background: #FFFFFF;
-  border: 1px solid var(--border);
+  border: 1.5px solid var(--border);
   border-radius: 12px;
   overflow: hidden;
+  box-shadow: var(--shadow-sm);
+  transition: all 0.2s ease;
+}
+
+.taxo-l1-group:hover {
+  border-color: var(--hdel-green-line);
+  box-shadow: var(--shadow-md);
 }
 
 .taxo-l1-head {
-  background: #F8FAF9;
+  background: linear-gradient(180deg, #F8FAF9 0%, #F1F6F3 100%);
   border-bottom: 1px solid var(--border);
-  padding: 12px 18px;
+  padding: 14px 20px;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  cursor: pointer;
 }
 
 .taxo-l1-title {
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 800;
   color: var(--ink);
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
+}
+
+.taxo-l1-badge {
+  font-size: 11px;
+  font-weight: 700;
+  background: var(--hdel-green-light);
+  color: var(--hdel-green-deep);
+  border: 1px solid var(--hdel-green-line);
+  padding: 3px 10px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
 }
 
 .taxo-l1-body {
-  padding: 16px 18px;
+  padding: 18px 20px;
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 14px;
@@ -1107,33 +1141,100 @@ body {
 
 .taxo-l2-box {
   background: #FAFCFB;
-  border: 1px solid #ECEFF1;
-  border-radius: 8px;
-  padding: 12px 14px;
+  border: 1px solid #E2E8F0;
+  border-radius: 10px;
+  padding: 14px 16px;
+  transition: all 0.2s ease;
+}
+
+.taxo-l2-box:hover {
+  background: #FFFFFF;
+  border-color: var(--hdel-green-line);
+  box-shadow: var(--shadow-sm);
 }
 
 .taxo-l2-title {
-  font-size: 13px;
+  font-size: 13.5px;
   font-weight: 800;
   color: var(--hdel-green-deep);
-  margin-bottom: 8px;
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px dashed var(--border);
   display: flex;
   align-items: center;
   justify-content: space-between;
 }
 
-.taxo-l3-list {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.taxo-l3-item {
-  font-size: 11.5px;
-  color: var(--ink-soft);
+.l2-title-text {
   display: flex;
   align-items: center;
   gap: 6px;
+}
+
+.l2-count-badge {
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--ink-soft);
+  background: #EDF2F7;
+  padding: 2px 7px;
+  border-radius: 8px;
+}
+
+.taxo-l3-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.taxo-l3-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  background: #FFFFFF;
+  border: 1px solid #F1F5F9;
+  border-radius: 6px;
+  padding: 6px 10px;
+  transition: all 0.15s ease;
+}
+
+.taxo-l3-item:hover {
+  border-color: var(--hdel-green-line);
+  background: var(--hdel-green-light);
+}
+
+.taxo-l3-main {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.taxo-code-badge {
+  font-family: 'Consolas', 'Menlo', monospace;
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--hdel-green-deep);
+  background: rgba(0, 136, 80, 0.08);
+  padding: 1px 6px;
+  border-radius: 4px;
+  letter-spacing: 0.2px;
+}
+
+.taxo-name-text {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.taxo-scope-badge {
+  font-size: 10.5px;
+  color: var(--ink-soft);
+  margin-left: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 4px;
 }
 
 /* 톱니바퀴 관리자 체크리스트 */
