@@ -20,9 +20,6 @@ let allProductsList = [];
 let activeProductCategory = 'ALL';
 let currentProductSearchTerm = '';
 
-let allTaxonomyList = [];
-let currentTaxonomySearchTerm = '';
-
 const TECH_ICONS = {
   "스마트제어/AI": "fa-microchip",
   "친환경/에너지": "fa-leaf",
@@ -541,6 +538,26 @@ function closeProductModal() {
   $('productDetailModal').classList.add('hide');
 }
 
+let allTaxonomyList = [];
+let activeTaxonomyCategory = 'ALL';
+let currentTaxonomySearchTerm = '';
+
+const TAXO_L1_ICONS = {
+  "기계·구동 시스템": "fa-gears",
+  "기계구동 시스템": "fa-gears",
+  "도어 시스템": "fa-door-open",
+  "전력·제어 하드웨어": "fa-bolt",
+  "전장·편의 시스템": "fa-tv",
+  "운행 제어 시스템": "fa-microchip",
+  "안전·보안 시스템": "fa-shield-halved",
+  "모니터링·진단·유지보수 시스템": "fa-tower-broadcast",
+  "모듈러": "fa-cubes-stacked",
+  "제조·시공 시스템": "fa-helmet-safety",
+  "버티포트": "fa-plane-departure",
+  "디자인": "fa-palette",
+  "기타": "fa-layer-group"
+};
+
 // ================= 6. [탭 3] 사내 표준 기술분류 체계 =================
 
 async function loadCompanyTaxonomy() {
@@ -557,54 +574,97 @@ async function loadCompanyTaxonomy() {
   }
 }
 
+function filterTaxonomyCategory(cat) {
+  activeTaxonomyCategory = cat;
+  const chips = document.querySelectorAll('#taxonomyCategoryFilters .chip');
+  chips.forEach(chip => {
+    if (chip.textContent.includes(cat) || (cat === 'ALL' && chip.textContent.includes('전체'))) {
+      chip.classList.add('active');
+    } else {
+      chip.classList.remove('active');
+    }
+  });
+  renderTaxonomyTree();
+}
+
 function renderTaxonomyTree() {
   const container = $('taxonomyTreeContainer');
   if (!container) return;
 
-  // L1 기준 그룹핑
+  // 1. 전체 리스트 복사
+  let items = allTaxonomyList;
+
+  // 2. L1 카테고리 필터링
+  if (activeTaxonomyCategory !== 'ALL') {
+    items = items.filter(t => (t.l1 || '').includes(activeTaxonomyCategory));
+  }
+
+  // 3. 텍스트 검색 필터링
+  if (currentTaxonomySearchTerm.trim() !== '') {
+    const term = currentTaxonomySearchTerm.toLowerCase();
+    items = items.filter(t => 
+      (t.code || '').toLowerCase().includes(term) ||
+      (t.name || '').toLowerCase().includes(term) ||
+      (t.l1 || '').toLowerCase().includes(term) ||
+      (t.l2 || '').toLowerCase().includes(term) ||
+      (t.scope || '').toLowerCase().includes(term)
+    );
+  }
+
+  if (items.length === 0) {
+    container.innerHTML = `
+      <div style="padding:48px 20px; text-align:center; color:var(--ink-faint); background:#FFFFFF; border:1px solid var(--border); border-radius:12px;">
+        <i class="fa-solid fa-folder-open" style="font-size:36px; margin-bottom:12px; display:block; color:#CBD5E1;"></i>
+        <b style="font-size:14px; color:var(--ink-soft);">검색 조건에 맞는 표준 기술분류가 없습니다.</b>
+        <p style="font-size:12px; margin-top:4px;">다른 검색어를 입력하시거나 카테고리 필터를 '전체'로 변경해보세요.</p>
+      </div>
+    `;
+    return;
+  }
+
+  // 4. L1 기준 그룹핑
   const groups = {};
-  allTaxonomyList.forEach(item => {
+  items.forEach(item => {
     const l1 = item.l1 || '기타';
     if (!groups[l1]) groups[l1] = [];
     groups[l1].push(item);
   });
 
   let html = '';
-  for (const [l1Name, items] of Object.entries(groups)) {
-    // 텍스트 검색 필터
-    let filteredItems = items;
-    if (currentTaxonomySearchTerm.trim() !== '') {
-      const term = currentTaxonomySearchTerm.toLowerCase();
-      filteredItems = items.filter(t => 
-        (t.code || '').toLowerCase().includes(term) ||
-        (t.name || '').toLowerCase().includes(term) ||
-        (t.l2 || '').toLowerCase().includes(term)
-      );
-      if (filteredItems.length === 0) continue;
-    }
+  for (const [l1Name, l1Items] of Object.entries(groups)) {
+    const icon = TAXO_L1_ICONS[l1Name] || 'fa-folder-tree';
 
     // L2 기준 하위 그룹핑
     const l2Groups = {};
-    filteredItems.forEach(t => {
+    l1Items.forEach(t => {
       const l2 = t.l2 || '세부기술';
       if (!l2Groups[l2]) l2Groups[l2] = [];
       l2Groups[l2].push(t);
     });
 
     let l2Html = '';
-    for (const [l2Name, subItems] of Object.entries(l2Groups)) {
-      const l3Html = subItems.map(s => `
-        <div class="taxo-l3-item">
-          <span style="font-family:monospace; color:var(--hdel-green-deep); font-weight:bold;">${esc(s.code)}</span>
-          <span>${esc(s.name)}</span>
-        </div>
-      `).join('');
+    for (const [l2Name, l3List] of Object.entries(l2Groups)) {
+      const l3Html = l3List.map(s => {
+        const scopeSnippet = s.scope ? `<span class="taxo-scope-badge" title="${esc(s.scope)}"><i class="fa-regular fa-compass"></i> ${esc(s.scope)}</span>` : '';
+        return `
+          <div class="taxo-l3-item">
+            <div class="taxo-l3-main">
+              <span class="taxo-code-badge">${esc(s.code)}</span>
+              <span class="taxo-name-text">${esc(s.name)}</span>
+            </div>
+            ${scopeSnippet}
+          </div>
+        `;
+      }).join('');
 
       l2Html += `
         <div class="taxo-l2-box">
           <div class="taxo-l2-title">
-            <span>${esc(l2Name)}</span>
-            <span style="font-size:11px; color:var(--ink-soft); font-weight:normal;">${subItems.length}개 소분류</span>
+            <div class="l2-title-text">
+              <i class="fa-solid fa-layer-group text-green" style="font-size:11px;"></i>
+              <span>${esc(l2Name)}</span>
+            </div>
+            <span class="l2-count-badge">${l3List.length}개 소분류</span>
           </div>
           <div class="taxo-l3-list">${l3Html}</div>
         </div>
@@ -615,17 +675,17 @@ function renderTaxonomyTree() {
       <div class="taxo-l1-group">
         <div class="taxo-l1-head">
           <div class="taxo-l1-title">
-            <i class="fa-solid fa-folder-tree text-green"></i>
+            <i class="fa-solid ${icon} text-green" style="font-size:16px;"></i>
             <span>${esc(l1Name)}</span>
           </div>
-          <span class="tab-badge">${filteredItems.length}개 기술분류</span>
+          <span class="taxo-l1-badge"><i class="fa-solid fa-cube"></i> ${l1Items.length}개 세부기술</span>
         </div>
         <div class="taxo-l1-body">${l2Html}</div>
       </div>
     `;
   }
 
-  container.innerHTML = html || '<div style="padding:40px; text-align:center; color:var(--ink-faint);">검색 조건에 맞는 기술분류가 없습니다.</div>';
+  container.innerHTML = html;
 }
 
 function onTaxonomySearch(val) {
