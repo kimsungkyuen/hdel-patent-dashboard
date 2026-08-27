@@ -1,0 +1,18 @@
+{
+  "name": "hdel-patent-dashboard",
+  "version": "1.0.0",
+  "description": "현대엘리베이터 특허 현황 실시간 모니터링 대시보드 (Patent Status Dashboard)",
+  "main": "server/server.js",
+  "scripts": {
+    "start": "node server/server.js"
+  },
+  "keywords": [
+    "patent",
+    "dashboard",
+    "kipo",
+    "hyundai-elevator",
+    "intellectual-property"
+  ],
+  "author": "Hyundai Elevator IP Team",
+  "license": "ISC"
+}
