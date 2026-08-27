@@ -1,0 +1,422 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>HDEL 특허 현황 모니터링 대시보드 · Hyundai Elevator Patent Dashboard</title>
+<link rel="stylesheet" href="style.css" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+</head>
+<body>
+
+<!-- ================= TOP HEADER ================= -->
+<header class="dash-header">
+  <div class="dash-brand">
+    <div class="ci-mark">
+      <svg viewBox="0 30 310 250">
+        <polygon points="138,35 0,274 309,274" fill="#FABE00"/>
+        <polygon points="171,35 33,274 309,274" fill="#008850"/>
+      </svg>
+    </div>
+    <div class="brand-text">
+      <h1>현대엘리베이터 특허 현황 대시보드</h1>
+      <span class="sub">HDEL Patent & Intellectual Property Status Dashboard</span>
+    </div>
+  </div>
+
+  <div class="dash-tools">
+    <div class="search-box">
+      <i class="fa-solid fa-magnifying-glass"></i>
+      <input type="text" id="globalSearch" placeholder="출원/등록번호, 발명명칭, 발명자, 기술분류 검색..." />
+    </div>
+
+    <button class="kipo-status-badge" id="btnKipoConfig" onclick="openKipoModal()" title="특허청 특허로 REST-API 연동 설정">
+      <span class="pulse-dot"></span>
+      <span id="kipoStatusText">특허로 실시간 연동 (정상)</span>
+      <i class="fa-solid fa-gear" style="font-size:11px; margin-left:4px;"></i>
+    </button>
+
+    <div class="date-badge">
+      <i class="fa-regular fa-clock"></i>
+      <span id="currentTime">2026-08-27 기준</span>
+    </div>
+
+    <button class="btn-refresh" onclick="refreshDashboard()" title="데이터 새로고침">
+      <i class="fa-solid fa-rotate"></i>
+    </button>
+  </div>
+</header>
+
+<!-- ================= MAIN CONTENT WRAPPER ================= -->
+<main class="dash-container">
+
+  <!-- 1. 핵심 KPI 요약 카드 그리드 -->
+  <section class="kpi-grid">
+    <div class="kpi-card highlight-green">
+      <div class="kpi-icon"><i class="fa-solid fa-award"></i></div>
+      <div class="kpi-info">
+        <span class="kpi-title">총 보유 지식재산권</span>
+        <div class="kpi-val"><span class="num">1,248</span><small>건</small></div>
+        <span class="kpi-sub"><i class="fa-solid fa-arrow-up text-green"></i> 전년 대비 +8.4% 증가</span>
+      </div>
+    </div>
+
+    <div class="kpi-card">
+      <div class="kpi-icon"><i class="fa-solid fa-file-signature"></i></div>
+      <div class="kpi-info">
+        <span class="kpi-title">심사·출원 진행</span>
+        <div class="kpi-val"><span class="num">142</span><small>건</small></div>
+        <span class="kpi-sub">우선심사 38건 · 일반 104건</span>
+      </div>
+    </div>
+
+    <div class="kpi-card">
+      <div class="kpi-icon"><i class="fa-solid fa-certificate"></i></div>
+      <div class="kpi-info">
+        <span class="kpi-title">보유 등록 권리</span>
+        <div class="kpi-val"><span class="num">986</span><small>건</small></div>
+        <span class="kpi-sub">국내 812건 · 해외 패밀리 174건</span>
+      </div>
+    </div>
+
+    <div class="kpi-card highlight-yellow">
+      <div class="kpi-icon"><i class="fa-solid fa-stamp"></i></div>
+      <div class="kpi-info">
+        <span class="kpi-title">등록 결정 (납부 대기)</span>
+        <div class="kpi-val"><span class="num">18</span><small>건</small></div>
+        <span class="kpi-sub text-warn">3개월 내 설정등록료 납부</span>
+      </div>
+    </div>
+
+    <div class="kpi-card highlight-red">
+      <div class="kpi-icon"><i class="fa-solid fa-triangle-exclamation"></i></div>
+      <div class="kpi-info">
+        <span class="kpi-title">30일 내 기한 임박</span>
+        <div class="kpi-val"><span class="num text-red">5</span><small>건</small></div>
+        <span class="kpi-sub text-red">연차료 3건 · OA답변 2건</span>
+      </div>
+    </div>
+
+    <div class="kpi-card">
+      <div class="kpi-icon"><i class="fa-solid fa-scale-balanced"></i></div>
+      <div class="kpi-info">
+        <span class="kpi-title">계류 심판 / 분쟁</span>
+        <div class="kpi-val"><span class="num">3</span><small>건</small></div>
+        <span class="kpi-sub">권리범위 2건 · 무효심판 1건</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2. 인터랙티브 차트 및 포트폴리오 분석 -->
+  <section class="chart-row">
+    <!-- 권리 유형별 비중 -->
+    <div class="chart-card flex-1">
+      <div class="card-head">
+        <h3><i class="fa-solid fa-chart-pie text-green"></i> 권리 유형별 포트폴리오</h3>
+        <span class="badge-total">총 1,248건</span>
+      </div>
+      <div class="type-progress-wrap">
+        <div class="type-row">
+          <div class="type-label">
+            <span class="type-dot bg-patent"></span>
+            <b>특허 (Patent)</b>
+          </div>
+          <div class="bar-outer"><div class="bar-inner bg-patent" style="width: 59.5%;"></div></div>
+          <div class="type-val"><b>742건</b> <span>(59.5%)</span></div>
+        </div>
+
+        <div class="type-row">
+          <div class="type-label">
+            <span class="type-dot bg-trademark"></span>
+            <b>상표 (Trademark)</b>
+          </div>
+          <div class="bar-outer"><div class="bar-inner bg-trademark" style="width: 16.2%;"></div></div>
+          <div class="type-val"><b>202건</b> <span>(16.2%)</span></div>
+        </div>
+
+        <div class="type-row">
+          <div class="type-label">
+            <span class="type-dot bg-design"></span>
+            <b>디자인 (Design)</b>
+          </div>
+          <div class="bar-outer"><div class="bar-inner bg-design" style="width: 14.9%;"></div></div>
+          <div class="type-val"><b>186건</b> <span>(14.9%)</span></div>
+        </div>
+
+        <div class="type-row">
+          <div class="type-label">
+            <span class="type-dot bg-utility"></span>
+            <b>실용신안 (Utility)</b>
+          </div>
+          <div class="bar-outer"><div class="bar-inner bg-utility" style="width: 9.5%;"></div></div>
+          <div class="type-val"><b>118건</b> <span>(9.5%)</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 기술분야별 분포 -->
+    <div class="chart-card flex-1">
+      <div class="card-head">
+        <h3><i class="fa-solid fa-layer-group text-green"></i> 핵심 기술분야별 포트폴리오</h3>
+        <span class="badge-tag">엘리베이터 핵심기술</span>
+      </div>
+      <div class="tech-grid">
+        <div class="tech-box">
+          <div class="tb-top"><i class="fa-solid fa-microchip"></i> <span>스마트 제어/AI</span></div>
+          <div class="tb-count">348건</div>
+          <div class="tb-meta">군관리 알고리즘, 혼잡도 예측</div>
+        </div>
+        <div class="tech-box">
+          <div class="tb-top"><i class="fa-solid fa-door-open"></i> <span>도어 시스템</span></div>
+          <div class="tb-count">245건</div>
+          <div class="tb-meta">센서 이물감지, 고속 개폐제어</div>
+        </div>
+        <div class="tech-box">
+          <div class="tb-top"><i class="fa-solid fa-shield-halved"></i> <span>안전 / 비상제동</span></div>
+          <div class="tb-count">210건</div>
+          <div class="tb-meta">전자식 웨지, 비상정지장치</div>
+        </div>
+        <div class="tech-box">
+          <div class="tb-top"><i class="fa-solid fa-link"></i> <span>로프 / 권상기</span></div>
+          <div class="tb-count">183건</div>
+          <div class="tb-meta">탄소섬유 벨트, 장력 모니터링</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 글로벌 패밀리 출원 국가 분포 -->
+    <div class="chart-card flex-1">
+      <div class="card-head">
+        <h3><i class="fa-solid fa-earth-americas text-green"></i> 글로벌 패밀리 출원 현황</h3>
+        <span class="badge-tag">해외 권리 174건</span>
+      </div>
+      <div class="country-list">
+        <div class="country-item">
+          <div class="c-flag">🇰🇷 대한민국 (KR)</div>
+          <div class="c-bar-wrap"><div class="c-bar" style="width: 100%;"></div></div>
+          <div class="c-num">812건 (82.3%)</div>
+        </div>
+        <div class="country-item">
+          <div class="c-flag">🇺🇸 미국 (US)</div>
+          <div class="c-bar-wrap"><div class="c-bar bg-us" style="width: 28%;"></div></div>
+          <div class="c-num">68건 (6.9%)</div>
+        </div>
+        <div class="country-item">
+          <div class="c-flag">🇨🇳 중국 (CN)</div>
+          <div class="c-bar-wrap"><div class="c-bar bg-cn" style="width: 22%;"></div></div>
+          <div class="c-num">45건 (4.6%)</div>
+        </div>
+        <div class="country-item">
+          <div class="c-flag">🇪🇺 유럽 (EP)</div>
+          <div class="c-bar-wrap"><div class="c-bar bg-ep" style="width: 18%;"></div></div>
+          <div class="c-num">35건 (3.5%)</div>
+        </div>
+        <div class="country-item">
+          <div class="c-flag">🌐 PCT 국제출원</div>
+          <div class="c-bar-wrap"><div class="c-bar bg-pct" style="width: 14%;"></div></div>
+          <div class="c-num">26건 (2.6%)</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3. 심사 진행 파이프라인 & 긴급 마감기한 배너 -->
+  <section class="pipeline-section">
+    <div class="pipeline-card">
+      <div class="pipeline-title">
+        <h3><i class="fa-solid fa-diagram-project text-green"></i> 실시간 출원·심사 진행 파이프라인 단계</h3>
+        <span class="sub-text">각 단계를 클릭하여 해당 단계의 사건을 필터링할 수 있습니다.</span>
+      </div>
+      <div class="pipeline-flow">
+        <div class="flow-step" onclick="filterByPipeline('출원접수')">
+          <div class="step-badge">STEP 1</div>
+          <div class="step-name">출원 접수 완료</div>
+          <div class="step-val">38건</div>
+        </div>
+        <div class="flow-arrow"><i class="fa-solid fa-chevron-right"></i></div>
+
+        <div class="flow-step active" onclick="filterByPipeline('심사진행')">
+          <div class="step-badge">STEP 2</div>
+          <div class="step-name">심사 진행중</div>
+          <div class="step-val">58건</div>
+        </div>
+        <div class="flow-arrow"><i class="fa-solid fa-chevron-right"></i></div>
+
+        <div class="flow-step warn" onclick="filterByPipeline('의견제출통지')">
+          <div class="step-badge">STEP 3</div>
+          <div class="step-name">의견제출통지 (OA)</div>
+          <div class="step-val">28건</div>
+        </div>
+        <div class="flow-arrow"><i class="fa-solid fa-chevron-right"></i></div>
+
+        <div class="flow-step success" onclick="filterByPipeline('등록결정')">
+          <div class="step-badge">STEP 4</div>
+          <div class="step-name">등록결정 (납부대기)</div>
+          <div class="step-val">18건</div>
+        </div>
+        <div class="flow-arrow"><i class="fa-solid fa-chevron-right"></i></div>
+
+        <div class="flow-step finish" onclick="filterByPipeline('설정등록')">
+          <div class="step-badge">FINAL</div>
+          <div class="step-name">등록유지 / 권리확보</div>
+          <div class="step-val">986건</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4. 긴급 마감기한 알림 위젯 -->
+  <section class="alert-section">
+    <div class="alert-card">
+      <div class="alert-head">
+        <div class="alert-title">
+          <i class="fa-solid fa-bell text-red"></i>
+          <b>특허청 법정 마감기한 긴급 알림 (D-30일 이내 임박 사건)</b>
+        </div>
+        <span class="alert-count">총 5건 처리 대기</span>
+      </div>
+      <div class="alert-table-wrap">
+        <table class="alert-table">
+          <thead>
+            <tr>
+              <th>D-Day</th>
+              <th>사건구분</th>
+              <th>출원/등록번호</th>
+              <th>발명의 명칭</th>
+              <th>법정 마감일자</th>
+              <th>요구되는 법정 절차</th>
+              <th>상태 / 액션</th>
+            </tr>
+          </thead>
+          <tbody id="urgentDeadlinesBody">
+            <!-- JS 동적 렌더링 -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5. 특허청(KIPO) 실시간 출원 & 등록 데이터 마스터 테이블 -->
+  <section class="data-section">
+    <div class="data-card">
+      <div class="data-card-head">
+        <div class="title-wrap">
+          <h3><i class="fa-solid fa-table-list text-green"></i> 특허청(KIPO) 실시간 특허·권리 현황 마스터</h3>
+          <span class="sub-text">특허로 REST Web API 연계 실시간 사건 목록</span>
+        </div>
+
+        <!-- 필터 탭 -->
+        <div class="filter-tabs" id="filterTabs">
+          <button class="f-tab active" data-filter="ALL">전체 (142)</button>
+          <button class="f-tab" data-filter="특허">특허 (88)</button>
+          <button class="f-tab" data-filter="실용신안">실용신안 (12)</button>
+          <button class="f-tab" data-filter="디자인">디자인 (22)</button>
+          <button class="f-tab" data-filter="상표">상표 (20)</button>
+          <button class="f-tab highlight" data-filter="OA">OA 대응중 (28)</button>
+          <button class="f-tab highlight-green" data-filter="REG">등록결정 (18)</button>
+        </div>
+      </div>
+
+      <div class="table-container">
+        <table class="master-table">
+          <thead>
+            <tr>
+              <th>권리구분</th>
+              <th>출원/등록번호</th>
+              <th>출원일자</th>
+              <th>발명의 명칭 (특허청 공보 명칭)</th>
+              <th>기술분야 / IPC</th>
+              <th>발명자 / 대리인</th>
+              <th>심사관 / 담당과</th>
+              <th>특허청 진행상태</th>
+              <th>서지상세</th>
+            </tr>
+          </thead>
+          <tbody id="patentTableBody">
+            <!-- JS 동적 렌더링 -->
+          </tbody>
+        </table>
+      </div>
+
+      <div class="table-footer">
+        <div class="pagination-info" id="pageInfo">총 142건 중 1-8건 표시</div>
+        <div class="data-source-tag"><i class="fa-solid fa-link"></i> 특허로 REST-API <code>apl/readApplBasicInfo</code> 동기화 완료</div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<!-- ================= 특허청 공식 서지정보 상세 모달 ================= -->
+<div class="modal-overlay hide" id="detailModal">
+  <div class="modal-window">
+    <div class="modal-header">
+      <div class="modal-title-wrap">
+        <span class="modal-badge" id="modalRightType">특허</span>
+        <h2 id="modalTitle">발명의 명칭 상세 서지사항</h2>
+      </div>
+      <button class="modal-close-btn" onclick="closeDetailModal()"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+
+    <div class="modal-body" id="modalBody">
+      <!-- 서지정보 및 타임라인 렌더링 -->
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn-secondary" onclick="closeDetailModal()">닫기</button>
+      <button class="btn-primary" onclick="window.print()"><i class="fa-solid fa-print"></i> 서지정보 출력</button>
+    </div>
+  </div>
+</div>
+
+<!-- ================= 특허로 REST-API 설정 모달 ================= -->
+<div class="modal-overlay hide" id="kipoModal" onclick="if(event.target===this)closeKipoModal()">
+  <div class="modal-window" style="max-width: 520px;">
+    <div class="modal-header">
+      <div class="modal-title-wrap">
+        <i class="fa-solid fa-network-wired text-green" style="font-size:20px;"></i>
+        <h2>특허청 특허로 REST-API 연동 설정</h2>
+      </div>
+      <button class="modal-close-btn" onclick="closeKipoModal()"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+
+    <div class="modal-body">
+      <p style="color:var(--ink-soft); font-size:13px; line-height:1.5; margin-bottom:16px;">
+        특허로(patent.go.kr)에서 발급받은 <b>특허고객번호</b>와 <b>전자서명 인증키</b>를 통해 실시간 특허청 데이터를 동기화합니다.
+      </p>
+
+      <div class="form-group">
+        <label>연동 모드</label>
+        <select id="cfg-mode" onchange="toggleApiMode(this.value)">
+          <option value="demo">데모 시뮬레이션 모드 (현대엘리베이터 표준 특허 데이터셋)</option>
+          <option value="live">특허로 실시간 Live REST-API 연동 모드</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>특허고객번호 (apagtCd)</label>
+        <input type="text" id="cfg-apagtCd" value="130000002156" placeholder="12자리 특허고객번호" />
+      </div>
+
+      <div class="form-group" id="group-ctfctKey">
+        <label>전자서명 인증키 (ctfctKey)</label>
+        <textarea id="cfg-ctfctKey" rows="3" placeholder="특허업무용 인증서로 전자서명된 Base64 인증키 문자열"></textarea>
+      </div>
+
+      <div id="kipoTestResult" class="test-result-box hide"></div>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn-secondary" onclick="testKipoApi()">연결 테스트</button>
+      <button class="btn-secondary" onclick="closeKipoModal()">취소</button>
+      <button class="btn-primary" onclick="saveKipoSettings()">설정 저장 및 동기화</button>
+    </div>
+  </div>
+</div>
+
+<!-- ================= TOAST NOTIFICATION ================= -->
+<div class="toast" id="toast"></div>
+
+<script src="app.js"></script>
+</body>
+</html>
