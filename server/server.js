@@ -1,3 +1,4 @@
+// server.js - 순수 Node.js 내장 모듈 기반 초경량/고신뢰성 IPMS 서버
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
@@ -8,30 +9,23 @@ const PORT = process.env.PORT || 3000;
 const PUBLIC_DIR = path.join(__dirname, '..', 'public');
 
 const MIME_TYPES = {
-  '.html': 'text/html; charset=UTF-8',
-  '.css': 'text/css; charset=UTF-8',
-  '.js': 'application/javascript; charset=UTF-8',
-  '.json': 'application/json; charset=UTF-8',
+  '.html': 'text/html; charset=utf-8',
+  '.css': 'text/css; charset=utf-8',
+  '.js': 'application/javascript; charset=utf-8',
+  '.json': 'application/json; charset=utf-8',
   '.png': 'image/png',
   '.jpg': 'image/jpeg',
+  '.gif': 'image/gif',
   '.svg': 'image/svg+xml',
-  '.ico': 'image/x-icon'
+  '.ico': 'image/x-icon',
+  '.pdf': 'application/pdf'
 };
 
-function sendJson(res, statusCode, data) {
-  res.writeHead(statusCode, {
-    'Content-Type': 'application/json; charset=UTF-8',
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type'
-  });
-  res.end(JSON.stringify(data));
-}
-
+// 요청 바디 파싱 헬퍼
 function parseBody(req) {
-  return new Promise((resolve, reject) => {
+  return new Promise((resolve) => {
     let body = '';
-    req.on('data', chunk => { body += chunk; });
+    req.on('data', chunk => { body += chunk.toString(); });
     req.on('end', () => {
       try {
         resolve(body ? JSON.parse(body) : {});
@@ -39,8 +33,18 @@ function parseBody(req) {
         resolve({});
       }
     });
-    req.on('error', err => reject(err));
   });
+}
+
+// JSON 응답 헬퍼
+function sendJson(res, statusCode, data) {
+  res.writeHead(statusCode, {
+    'Content-Type': 'application/json; charset=utf-8',
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type'
+  });
+  res.end(JSON.stringify(data));
 }
 
 const server = http.createServer(async (req, res) => {
@@ -48,10 +52,11 @@ const server = http.createServer(async (req, res) => {
   const pathname = parsedUrl.pathname;
   const method = req.method;
 
+  // CORS 프리플라이트 처리
   if (method === 'OPTIONS') {
     res.writeHead(204, {
       'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
       'Access-Control-Allow-Headers': 'Content-Type'
     });
     return res.end();
@@ -63,13 +68,13 @@ const server = http.createServer(async (req, res) => {
       // 1. 경영진 보고용 종합 요약 (Executive Summary)
       if (pathname === '/api/dashboard/executive-summary' && method === 'GET') {
         const summary = await kipoService.getExecutiveSummary();
-        return sendJson(res, 200, { success: true, data: summary });
+        return sendJson(res, 200, { success: true, data: summary.data || summary });
       }
 
       // 기존 대시보드 종합 요약 (호환성 유지)
       if (pathname === '/api/dashboard/summary' && method === 'GET') {
         const summary = await kipoService.getExecutiveSummary();
-        return sendJson(res, 200, { success: true, data: summary });
+        return sendJson(res, 200, { success: true, data: summary.data || summary });
       }
 
       // 1-1. 기술분류 매핑 API (조회 및 저장)
@@ -83,108 +88,141 @@ const server = http.createServer(async (req, res) => {
             const result = kipoService.updateTechCategory(body.appNo, body.category, body.subCategory || '');
             return sendJson(res, 200, { success: true, data: result, message: "기술분류가 매핑되었습니다." });
           }
-          return sendJson(res, 400, { success: false, message: "appNo와 category는 필수 항목입니다." });
+          return sendJson(res, 400, { success: false, error: "appNo and category are required" });
         }
       }
 
-      // 2. 출원 목록 조회
-      if (pathname === '/api/kipo/applications' && method === 'GET') {
-        const list = await kipoService.getApplications(parsedUrl.query);
-        return sendJson(res, 200, { success: true, data: list });
+      // 2. 출원 현황 목록
+      if (pathname === '/api/applications' && method === 'GET') {
+        const result = await kipoService.getApplications(parsedUrl.query);
+        return sendJson(res, 200, { success: true, data: result });
       }
 
-      // 3. 출원 상세정보 조회
-      if (pathname.startsWith('/api/kipo/applications/') && method === 'GET') {
-        const applNo = pathname.replace('/api/kipo/applications/', '');
-        const detail = await kipoService.getApplicationDetail(decodeURIComponent(applNo));
-        return sendJson(res, 200, { success: true, data: detail });
+      // 3. 출원 상세
+      if (pathname.startsWith('/api/applications/') && method === 'GET') {
+        const applNo = pathname.replace('/api/applications/', '');
+        const result = await kipoService.getApplicationDetail(applNo);
+        return sendJson(res, 200, { success: true, data: result });
       }
 
-      // 4. 등록 권리 목록 조회
-      if (pathname === '/api/kipo/registrations' && method === 'GET') {
-        const list = await kipoService.getRegistrations(parsedUrl.query);
-        return sendJson(res, 200, { success: true, data: list });
+      // 4. 등록 권리 목록
+      if (pathname === '/api/registrations' && method === 'GET') {
+        const result = await kipoService.getRegistrations(parsedUrl.query);
+        return sendJson(res, 200, { success: true, data: result });
       }
 
-      // 5. 등록 상세정보 조회
-      if (pathname.startsWith('/api/kipo/registrations/') && method === 'GET') {
-        const rgstNo = pathname.replace('/api/kipo/registrations/', '');
-        const detail = await kipoService.getRegistrationDetail(decodeURIComponent(rgstNo));
-        return sendJson(res, 200, { success: true, data: detail });
+      // 5. 등록 상세
+      if (pathname.startsWith('/api/registrations/') && method === 'GET') {
+        const rgstNo = pathname.replace('/api/registrations/', '');
+        const result = await kipoService.getRegistrationDetail(rgstNo);
+        return sendJson(res, 200, { success: true, data: result });
       }
 
-      // 6. 마감기한 및 통지서 모니터링
-      if (pathname === '/api/kipo/deadlines' && method === 'GET') {
-        const deadlines = await kipoService.getDeadlines();
-        return sendJson(res, 200, { success: true, data: deadlines });
+      // 6. 마감기한 / 통지서 현황
+      if (pathname === '/api/deadlines' && method === 'GET') {
+        const result = await kipoService.getDeadlines();
+        return sendJson(res, 200, { success: true, data: result });
       }
 
       // 7. 심판 현황
-      if (pathname === '/api/kipo/trials' && method === 'GET') {
-        const trials = await kipoService.getTrials();
-        return sendJson(res, 200, { success: true, data: trials });
+      if (pathname === '/api/trials' && method === 'GET') {
+        const result = await kipoService.getTrials();
+        return sendJson(res, 200, { success: true, data: result });
       }
 
-      // 8. 환경설정 조회 및 저장
-      if (pathname === '/api/kipo/config') {
+      // 8. 설정 조회 및 변경
+      if (pathname === '/api/config') {
         if (method === 'GET') {
           return sendJson(res, 200, { success: true, data: kipoService.getConfig() });
         }
         if (method === 'POST') {
           const body = await parseBody(req);
           const updated = kipoService.updateConfig(body);
-          return sendJson(res, 200, { success: true, data: updated, message: "환경설정이 저장되었습니다." });
+          return sendJson(res, 200, { success: true, data: updated, message: "설정이 성공적으로 저장되었습니다." });
         }
       }
 
-      // 9. 실시간 연결 테스트
-      if (pathname === '/api/kipo/test-connection' && method === 'POST') {
-        const body = await parseBody(req);
-        if (body.apagtCd) kipoService.updateConfig(body);
-        const testRes = await kipoService.getApplications({ pagePerRow: "1" });
-        return sendJson(res, 200, {
-          success: testRes.procResult === "true" || testRes.procResult === true,
-          data: testRes,
-          message: testRes.procResult === "true" ? "특허청 웹서비스 정상 연결 성공" : "연결 응답 확인 필요"
-        });
+      // 9. 사내 제품군 현황 API
+      if (pathname === '/api/company/products' && method === 'GET') {
+        const products = kipoService.getCompanyProducts();
+        return sendJson(res, 200, { success: true, data: products });
       }
 
-      return sendJson(res, 404, { success: false, error: "API Endpoint Not Found" });
+      // 10. 사내 특정 제품 상세 및 피처/특허패밀리 API
+      if (pathname.startsWith('/api/company/products/') && method === 'GET') {
+        const productId = pathname.replace('/api/company/products/', '');
+        const detail = kipoService.getProductDetail(productId);
+        if (!detail) {
+          return sendJson(res, 404, { success: false, error: 'Product not found' });
+        }
+        return sendJson(res, 200, { success: true, data: detail });
+      }
+
+      // 11. 사내 6대 전략 클러스터 API
+      if (pathname === '/api/company/clusters' && method === 'GET') {
+        const clusters = kipoService.getStrategicClusters();
+        return sendJson(res, 200, { success: true, data: clusters });
+      }
+
+      // 12. 사내 표준 134개 기술분류(Taxonomy) API
+      if (pathname === '/api/company/taxonomy' && method === 'GET') {
+        const taxonomy = kipoService.getCompanyTaxonomy();
+        return sendJson(res, 200, { success: true, data: taxonomy });
+      }
+
+      // 알 수 없는 API 엔드포인트
+      return sendJson(res, 404, { success: false, error: 'API route not found' });
     } catch (err) {
       console.error('API Error:', err);
       return sendJson(res, 500, { success: false, error: err.message });
     }
   }
 
-  // ================= STATIC FILES =================
-  let filePath = path.join(PUBLIC_DIR, pathname === '/' ? 'index.html' : pathname);
-  
-  if (!fs.existsSync(filePath)) {
-    const rootPath = path.join(__dirname, '..', pathname === '/' ? 'index.html' : pathname);
-    if (fs.existsSync(rootPath)) {
-      filePath = rootPath;
-    } else {
-      filePath = path.join(PUBLIC_DIR, 'index.html');
-    }
+  // ================= 정적 파일 서빙 =================
+  let targetFile = 'dashboard_v3.html';
+  if (pathname === '/' || pathname === '/v3' || pathname === '/index.html') {
+    targetFile = 'dashboard_v3.html';
+  } else if (pathname === '/atlas') {
+    targetFile = 'atlas.html';
+  } else if (pathname === '/legacy') {
+    targetFile = 'index_legacy.html';
+  } else {
+    targetFile = pathname.startsWith('/') ? pathname.substring(1) : pathname;
   }
 
-  const ext = path.extname(filePath).toLowerCase();
-  const contentType = MIME_TYPES[ext] || 'application/octet-stream';
+  let filePath = path.join(PUBLIC_DIR, targetFile);
 
-  fs.readFile(filePath, (err, content) => {
-    if (err) {
-      res.writeHead(500, { 'Content-Type': 'text/plain' });
-      res.end('Server Error loading static file');
-    } else {
+  // 상위 경로 탐색 방지 (Security)
+  if (!filePath.startsWith(PUBLIC_DIR)) {
+    res.writeHead(403);
+    return res.end('Forbidden');
+  }
+
+  fs.stat(filePath, (err, stats) => {
+    if (err || !stats.isFile()) {
+      // 404 발생 시 dashboard_v3.html 서빙 (SPA 지원)
+      filePath = path.join(PUBLIC_DIR, 'dashboard_v3.html');
+    }
+
+    const ext = path.extname(filePath).toLowerCase();
+    const contentType = MIME_TYPES[ext] || 'application/octet-stream';
+
+    fs.readFile(filePath, (readErr, content) => {
+      if (readErr) {
+        res.writeHead(500);
+        return res.end('Internal Server Error');
+      }
       res.writeHead(200, { 'Content-Type': contentType });
       res.end(content);
-    }
+    });
   });
 });
 
 server.listen(PORT, () => {
   console.log(`====================================================`);
-  console.log(` HDEL Patent Executive Monitoring Dashboard Server   `);
-  console.log(` Running on: http://localhost:${PORT}               `);
+  console.log(`🚀 현대엘리베이터 IPMS 경영진 통합 포털 v3 실행 완료!`);
+  console.log(`🌐 [신규 v3 경영진 대시보드]: http://localhost:${PORT}/v3`);
+  console.log(`🌐 [사내 정밀 아틀라스 v2.2]: http://localhost:${PORT}/atlas`);
+  console.log(`🌐 [기존 v2 대시보드 보존]: http://localhost:${PORT}/legacy`);
   console.log(`====================================================`);
 });
