@@ -305,12 +305,28 @@
       <!-- ================= 4-C. [탭 3] 사내 표준 기술분류 체계 ================= -->
       <div class="tab-pane" id="pane-taxonomy" style="display: none;">
         <div class="taxonomy-top-bar">
-          <div class="explorer-label">
-            <i class="fa-solid fa-network-wired text-green"></i> <b>사내 134개 표준 기술분류 (L1 大 ➔ L2 中 ➔ L3 小)</b>
+          <div class="taxonomy-filter-group">
+            <div class="explorer-label">
+              <i class="fa-solid fa-network-wired text-green"></i> <b>사내 표준 기술분류 체계 (134개 소분류)</b>
+            </div>
+            <div class="taxonomy-category-filters" id="taxonomyCategoryFilters">
+              <button class="chip active" onclick="filterTaxonomyCategory('ALL')">전체 (134)</button>
+              <button class="chip" onclick="filterTaxonomyCategory('기계구동')">기계구동 (32)</button>
+              <button class="chip" onclick="filterTaxonomyCategory('도어')">도어 (9)</button>
+              <button class="chip" onclick="filterTaxonomyCategory('전력·제어')">전력·제어 (13)</button>
+              <button class="chip" onclick="filterTaxonomyCategory('전장·편의')">전장·편의 (11)</button>
+              <button class="chip" onclick="filterTaxonomyCategory('운행 제어')">운행 제어 (15)</button>
+              <button class="chip" onclick="filterTaxonomyCategory('안전·보안')">안전·보안 (12)</button>
+              <button class="chip" onclick="filterTaxonomyCategory('모니터링')">모니터링·MIRI (15)</button>
+              <button class="chip" onclick="filterTaxonomyCategory('모듈러')">모듈러 (6)</button>
+              <button class="chip" onclick="filterTaxonomyCategory('제조·시공')">제조·시공 (10)</button>
+              <button class="chip" onclick="filterTaxonomyCategory('버티포트')">버티포트 (6)</button>
+              <button class="chip" onclick="filterTaxonomyCategory('디자인')">디자인 (4)</button>
+            </div>
           </div>
           <div class="explorer-search">
             <i class="fa-solid fa-magnifying-glass"></i>
-            <input type="text" id="taxonomySearchInput" placeholder="분류 코드, 명칭 검색..." oninput="onTaxonomySearch(this.value)" />
+            <input type="text" id="taxonomySearchInput" placeholder="분류 코드, 명칭, 범위 검색..." oninput="onTaxonomySearch(this.value)" />
           </div>
         </div>
 
