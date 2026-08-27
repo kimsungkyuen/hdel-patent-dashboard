@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>현대엘리베이터 경영진 특허 현황 모니터링 · HDEL Executive IP Dashboard</title>
+<title>현대엘리베이터 특허 현황 모니터링 · HDEL Intellectual Property Dashboard</title>
 <link rel="stylesheet" href="style.css" />
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
 </head>
@@ -20,7 +20,7 @@
     </div>
     <div class="brand-text">
       <h1>현대엘리베이터 특허 현황 모니터링</h1>
-      <span class="sub">HDEL Executive Intellectual Property Dashboard · 특허로 Live REST-API 연동</span>
+      <span class="sub">HDEL Intellectual Property Dashboard · 특허로 Live API 연동</span>
     </div>
   </div>
 
@@ -45,40 +45,28 @@
 <!-- ================= MAIN CONTENT WRAPPER ================= -->
 <main class="dash-container">
 
-  <!-- 1. 경영진 보고용 핵심 5대 KPI 카드 그리드 -->
+  <!-- 1. 핵심 4대 KPI 카드 그리드 (출원+심사 합산 '출원'으로 단일화) -->
   <section class="kpi-grid">
-    <!-- 총 보유 지식재산권 (무효/소멸/거절/포기 완전 제외) -->
+    <!-- 총 보유 지식재산권 -->
     <div class="kpi-card highlight-green">
       <div class="kpi-icon"><i class="fa-solid fa-award"></i></div>
       <div class="kpi-info">
         <div class="kpi-title-row">
           <span class="kpi-title">총 보유 지식재산권</span>
-          <span class="badge-filter-notice">무효 제외</span>
+          <span class="badge-filter-notice">유효 권리</span>
         </div>
         <div class="kpi-val"><span class="num" id="kpi-total-valid">1,248</span><small>건</small></div>
-        <span class="kpi-sub"><i class="fa-solid fa-shield-check text-green"></i> 현재 유효한 순수 권리 총계</span>
+        <span class="kpi-sub"><i class="fa-solid fa-shield-check text-green"></i> 현재 보유 유효 권리 총계</span>
       </div>
     </div>
 
-    <!-- 출원 -->
-    <div class="kpi-card">
+    <!-- 출원 (출원+심사진행 합산) -->
+    <div class="kpi-card highlight-blue">
       <div class="kpi-icon"><i class="fa-solid fa-file-signature"></i></div>
       <div class="kpi-info">
         <span class="kpi-title">출원</span>
-        <div class="kpi-val"><span class="num" id="kpi-application">44</span><small>건</small></div>
-        <span class="kpi-sub">출원 접수 및 초기 계류</span>
-      </div>
-    </div>
-
-    <!-- 심사 (등록 전까지의 모든 단계) -->
-    <div class="kpi-card highlight-blue">
-      <div class="kpi-icon"><i class="fa-solid fa-magnifying-glass-chart"></i></div>
-      <div class="kpi-info">
-        <div class="kpi-title-row">
-          <span class="kpi-title">심사</span>
-        </div>
-        <div class="kpi-val"><span class="num text-blue" id="kpi-examination">144</span><small>건</small></div>
-        <span class="kpi-sub">심사진행 및 등록결정 대기</span>
+        <div class="kpi-val"><span class="num text-blue" id="kpi-application">188</span><small>건</small></div>
+        <span class="kpi-sub">출원 및 심사 진행 권리</span>
       </div>
     </div>
 
@@ -88,7 +76,7 @@
       <div class="kpi-info">
         <span class="kpi-title">등록</span>
         <div class="kpi-val"><span class="num text-green" id="kpi-registration">986</span><small>건</small></div>
-        <span class="kpi-sub">등록 완료 및 권리 유지</span>
+        <span class="kpi-sub">설정등록 완료 및 권리 유지</span>
       </div>
     </div>
 
@@ -103,35 +91,28 @@
     </div>
   </section>
 
-  <!-- 2. 권리 라이프사이클 파이프라인 (출원 ➔ 심사 ➔ 등록 3단계 단일화) -->
+  <!-- 2. 권리 라이프사이클 파이프라인 (출원 ➔ 등록 2단계) -->
   <section class="pipeline-section">
     <div class="pipeline-card">
       <div class="pipeline-title">
         <h3><i class="fa-solid fa-diagram-project text-green"></i> 지식재산권 라이프사이클 파이프라인</h3>
-        <span class="sub-text">출원에서 등록 완료까지의 3단계 흐름</span>
+        <span class="sub-text">출원에서 등록 완료까지의 권리 흐름</span>
       </div>
-      <div class="pipeline-flow-3step">
-        <div class="flow-step-3" id="step-app">
+      <div class="pipeline-flow-2step">
+        <div class="flow-step-2 active" id="step-app">
           <div class="step-badge">STEP 1</div>
           <div class="step-name">출원</div>
-          <div class="step-val" id="pipe-app-val">44건</div>
-          <div class="step-desc">출원서 접수 및 서류 심사</div>
+          <div class="step-val text-blue" id="pipe-app-val">188건</div>
+          <div class="step-desc">출원 접수 및 심사 단계</div>
         </div>
+        
         <div class="flow-arrow"><i class="fa-solid fa-chevron-right"></i></div>
 
-        <div class="flow-step-3 active" id="step-exam">
+        <div class="flow-step-2 finish" id="step-reg">
           <div class="step-badge">STEP 2</div>
-          <div class="step-name">심사</div>
-          <div class="step-val text-blue" id="pipe-exam-val">144건</div>
-          <div class="step-desc">실체 심사 및 등록 결정 대기</div>
-        </div>
-        <div class="flow-arrow"><i class="fa-solid fa-chevron-right"></i></div>
-
-        <div class="flow-step-3 finish" id="step-reg">
-          <div class="step-badge">FINAL</div>
           <div class="step-name">등록</div>
           <div class="step-val text-green" id="pipe-reg-val">986건</div>
-          <div class="step-desc">설정등록 및 독점 배타권 확보</div>
+          <div class="step-desc">설정등록 완료 및 독점 배타권 확보</div>
         </div>
       </div>
     </div>
@@ -220,113 +201,193 @@
     </div>
   </section>
 
-  <!-- 4. 핵심 기술분야별 포트폴리오 (하단 배치 & 임원 관심 대놓고 보기 + 전체 탐색기) -->
+  <!-- 4. 사내 지식재산권(IP) 포트폴리오 (기술분야별 / 제품별 / 표준기술분류 3-Way 탭) -->
   <section class="portfolio-section">
     <div class="portfolio-card">
       <div class="portfolio-header">
         <div class="title-wrap">
-          <h3><i class="fa-solid fa-layer-group text-green"></i> 핵심 기술분야별 IP 포트폴리오</h3>
-          <span class="sub-text">현대엘리베이터 미래 핵심 역량 및 주요 기술별 특허 자산 현황</span>
+          <h3><i class="fa-solid fa-layer-group text-green"></i> 지식재산권(IP) 포트폴리오</h3>
+          <span class="sub-text">현대엘리베이터 핵심 기술분야 및 31대 제품별 특허 자산 현황</span>
         </div>
-        <div class="portfolio-actions">
-          <button class="btn-tech-map" onclick="openTechCategoryModal()" title="기술분류 데이터 매핑 관리">
-            <i class="fa-solid fa-tags"></i> 기술분류 매핑 연동
+        
+        <!-- 3-Way 탭 네비게이션 -->
+        <div class="portfolio-nav-tabs">
+          <button class="p-nav-tab active" id="tabBtn-tech" onclick="switchPortfolioTab('tech')">
+            <i class="fa-solid fa-microchip"></i> 기술분야별 포트폴리오
+          </button>
+          <button class="p-nav-tab" id="tabBtn-product" onclick="switchPortfolioTab('product')">
+            <i class="fa-solid fa-elevator"></i> 제품별 IP 포트폴리오 <span class="tab-badge" id="productCountBadge">31</span>
+          </button>
+          <button class="p-nav-tab" id="tabBtn-taxonomy" onclick="switchPortfolioTab('taxonomy')">
+            <i class="fa-solid fa-sitemap"></i> 표준 기술분류 체계 <span class="tab-badge" id="taxonomyCountBadge">134</span>
           </button>
         </div>
       </div>
 
-      <!-- 4-1. 임원 관심 최우선 핵심 기술분야 (Key Focus - 대놓고 직관적으로 보기) -->
-      <div class="focus-section-label">
-        <i class="fa-solid fa-star text-yellow"></i> <b>경영진 핵심 Focus 분야</b>
-      </div>
-      <div class="key-focus-grid" id="keyFocusGrid">
-        <!-- JS 동적 렌더링 (스마트제어/AI, 친환경/에너지, 초고속/초고층, 안전/비상제동 등) -->
+      <!-- ================= 4-A. [탭 1] 기술분야별 포트폴리오 ================= -->
+      <div class="tab-pane active" id="pane-tech">
+        <!-- 상단: 경영진 핵심 Focus 분야 + 우상단 ⚙️ 설정 버튼 -->
+        <div class="focus-top-bar">
+          <div class="focus-section-label">
+            <i class="fa-solid fa-star text-yellow"></i> <b>경영진 핵심 Focus 분야</b>
+          </div>
+          <div class="focus-actions">
+            <button class="btn-gear-config" onclick="openKeyFocusModal()" title="핵심 Focus 기술분야 설정">
+              <i class="fa-solid fa-gear"></i> 핵심 기술 설정
+            </button>
+          </div>
+        </div>
+
+        <!-- 핵심 Focus 카드 그리드 -->
+        <div class="key-focus-grid" id="keyFocusGrid">
+          <!-- JS 동적 렌더링 -->
+        </div>
+
+        <!-- 하단: 전체 기술분야 인터랙티브 탐색기 -->
+        <div class="explorer-section-wrap">
+          <div class="explorer-top-bar">
+            <div class="explorer-label">
+              <i class="fa-solid fa-filter text-green"></i> <b>전체 기술분야 선택 탐색</b>
+            </div>
+            <div class="explorer-search">
+              <i class="fa-solid fa-magnifying-glass"></i>
+              <input type="text" id="techSearchInput" placeholder="기술명, 키워드 검색..." oninput="onTechSearch(this.value)" />
+            </div>
+          </div>
+
+          <!-- 기술분야 필터 칩 목록 -->
+          <div class="tech-filter-chips" id="techFilterChips">
+            <button class="chip active" onclick="selectTechFilter('ALL')">전체 기술분야</button>
+            <button class="chip" onclick="selectTechFilter('스마트제어/AI')">스마트제어/AI</button>
+            <button class="chip" onclick="selectTechFilter('친환경/에너지')">친환경/에너지</button>
+            <button class="chip" onclick="selectTechFilter('초고속/초고층')">초고속/초고층</button>
+            <button class="chip" onclick="selectTechFilter('안전/비상제동')">안전/비상제동</button>
+            <button class="chip" onclick="selectTechFilter('도어시스템')">도어시스템</button>
+            <button class="chip" onclick="selectTechFilter('로프/권상기')">로프/권상기</button>
+            <button class="chip" onclick="selectTechFilter('승차감/진동제어')">승차감/진동제어</button>
+            <button class="chip" onclick="selectTechFilter('비접촉/스마트UX')">비접촉/스마트UX</button>
+          </div>
+
+          <!-- 선택된 기술분야 카드 그리드 -->
+          <div class="tech-detail-grid" id="techDetailGrid">
+            <!-- JS 동적 렌더링 -->
+          </div>
+        </div>
       </div>
 
-      <!-- 4-2. 전체 기술분야 인터랙티브 탐색기 (선택해서 보기) -->
-      <div class="explorer-section-wrap">
-        <div class="explorer-top-bar">
-          <div class="explorer-label">
-            <i class="fa-solid fa-filter text-green"></i> <b>전체 기술분야 선택 탐색</b>
+      <!-- ================= 4-B. [탭 2] 제품별 IP 포트폴리오 ================= -->
+      <div class="tab-pane" id="pane-product" style="display: none;">
+        <div class="product-top-bar">
+          <div class="product-filter-group">
+            <div class="explorer-label">
+              <i class="fa-solid fa-cubes text-green"></i> <b>사내 31대 제품 및 적용 특허</b>
+            </div>
+            <div class="product-category-filters" id="productCategoryFilters">
+              <button class="chip active" onclick="filterProducts('ALL')">전체 (31)</button>
+              <button class="chip" onclick="filterProducts('스마트/고속')">스마트/고속 (12)</button>
+              <button class="chip" onclick="filterProducts('중저속/MRL')">중저속/MRL (8)</button>
+              <button class="chip" onclick="filterProducts('물류/주차')">물류/주차 (6)</button>
+              <button class="chip" onclick="filterProducts('솔루션/서비스')">솔루션/서비스 (5)</button>
+            </div>
           </div>
           <div class="explorer-search">
             <i class="fa-solid fa-magnifying-glass"></i>
-            <input type="text" id="techSearchInput" placeholder="기술명, 키워드 검색..." oninput="onTechSearch(this.value)" />
+            <input type="text" id="productSearchInput" placeholder="제품명, 모델, 피처 검색..." oninput="onProductSearch(this.value)" />
           </div>
         </div>
 
-        <!-- 기술분야 필터 태그 목록 -->
-        <div class="tech-filter-chips" id="techFilterChips">
-          <button class="chip active" onclick="selectTechFilter('ALL')">전체 기술분야</button>
-          <button class="chip" onclick="selectTechFilter('스마트제어/AI')">스마트제어/AI</button>
-          <button class="chip" onclick="selectTechFilter('친환경/에너지')">친환경/에너지</button>
-          <button class="chip" onclick="selectTechFilter('초고속/초고층')">초고속/초고층</button>
-          <button class="chip" onclick="selectTechFilter('안전/비상제동')">안전/비상제동</button>
-          <button class="chip" onclick="selectTechFilter('도어시스템')">도어시스템</button>
-          <button class="chip" onclick="selectTechFilter('로프/권상기')">로프/권상기</button>
-          <button class="chip" onclick="selectTechFilter('승차감/진동제어')">승차감/진동제어</button>
-          <button class="chip" onclick="selectTechFilter('비접촉/스마트UX')">비접촉/스마트UX</button>
-        </div>
-
-        <!-- 선택된 기술분야 상세 뷰 카드 그리드 -->
-        <div class="tech-detail-grid" id="techDetailGrid">
+        <!-- 31대 제품 카드 그리드 -->
+        <div class="product-grid" id="productGrid">
           <!-- JS 동적 렌더링 -->
         </div>
       </div>
+
+      <!-- ================= 4-C. [탭 3] 사내 표준 기술분류 체계 ================= -->
+      <div class="tab-pane" id="pane-taxonomy" style="display: none;">
+        <div class="taxonomy-top-bar">
+          <div class="explorer-label">
+            <i class="fa-solid fa-network-wired text-green"></i> <b>사내 134개 표준 기술분류 (L1 大 ➔ L2 中 ➔ L3 小)</b>
+          </div>
+          <div class="explorer-search">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <input type="text" id="taxonomySearchInput" placeholder="분류 코드, 명칭 검색..." oninput="onTaxonomySearch(this.value)" />
+          </div>
+        </div>
+
+        <div class="taxonomy-tree-container" id="taxonomyTreeContainer">
+          <!-- JS 동적 렌더링 -->
+        </div>
+      </div>
+
     </div>
   </section>
 
 </main>
 
-<!-- ================= 기술분류 매핑 모달 ================= -->
-<div class="modal-overlay hide" id="techModal" onclick="if(event.target===this)closeTechModal()">
-  <div class="modal-window" style="max-width: 580px;">
+<!-- ================= 모달 1: ⚙️ 핵심 Focus 기술분야 관리자 설정 ================= -->
+<div class="modal-overlay hide" id="keyFocusModal" onclick="if(event.target===this)closeKeyFocusModal()">
+  <div class="modal-window" style="max-width: 520px;">
     <div class="modal-header">
       <div class="modal-title-wrap">
-        <i class="fa-solid fa-tags text-green" style="font-size:20px;"></i>
-        <h2>핵심 기술분류(Taxonomy) 매핑 연동</h2>
+        <i class="fa-solid fa-gear text-green" style="font-size:20px;"></i>
+        <h2>경영진 핵심 Focus 기술분야 설정</h2>
       </div>
-      <button class="modal-close-btn" onclick="closeTechModal()"><i class="fa-solid fa-xmark"></i></button>
+      <button class="modal-close-btn" onclick="closeKeyFocusModal()"><i class="fa-solid fa-xmark"></i></button>
     </div>
 
     <div class="modal-body">
       <p style="color:var(--ink-soft); font-size:13px; line-height:1.5; margin-bottom:16px;">
-        각 특허/출원 건에 기술분류를 부여하여 <b>핵심 기술분야별 포트폴리오</b>를 맞춤형으로 구성할 수 있습니다.
+        경영진 대시보드 상단에 우선적으로 강조 노출할 <b>핵심 Focus 기술분야</b>를 선택하세요.
       </p>
 
-      <div class="form-group">
-        <label>대상 출원/등록번호</label>
-        <input type="text" id="tech-appNo" placeholder="예: 10-2024-0012345" />
-      </div>
-
-      <div class="form-group">
-        <label>핵심 기술분류 (대분류)</label>
-        <select id="tech-category">
-          <option value="스마트제어/AI">스마트제어/AI (군관리, 혼잡도 예측, 지능형 행선예약)</option>
-          <option value="친환경/에너지">친환경/에너지 (회생전력, 초절전 인버터, 에너지 최적화)</option>
-          <option value="초고속/초고층">초고속/초고층 (유선형 캡슐, 기압제어, 액티브 가이드)</option>
-          <option value="안전/비상제동">안전/비상제동 (전자식 웨지 제동, 지진피난제어, 과속조속기)</option>
-          <option value="도어시스템">도어시스템 (3D 센서 이물감지, 고속 개폐제어, 방화도어락)</option>
-          <option value="로프/권상기">로프/권상기 (탄소섬유 벨트, 장력 모니터링, PMSM 권상기)</option>
-          <option value="승차감/진동제어">승차감/진동제어 (능동 진동 감쇄, 가감속 곡선 제어)</option>
-          <option value="비접촉/스마트UX">비접촉/스마트UX (모바일 태깅, 홀로그램 UI, 음성인식)</option>
-        </select>
-      </div>
-
-      <div class="form-group">
-        <label>세부 기술명 (소분류 / 제품 적용처)</label>
-        <input type="text" id="tech-subCategory" placeholder="예: 비상제동 전자식 웨지 메커니즘" />
+      <div class="key-focus-checklist" id="keyFocusChecklist">
+        <!-- JS 동적 렌더링 -->
       </div>
     </div>
 
     <div class="modal-footer">
-      <button class="btn-secondary" onclick="closeTechModal()">취소</button>
-      <button class="btn-primary" onclick="saveTechCategory()"><i class="fa-solid fa-check"></i> 기술분류 매핑 저장</button>
+      <button class="btn-secondary" onclick="closeKeyFocusModal()">취소</button>
+      <button class="btn-primary" onclick="saveKeyFocusSettings()"><i class="fa-solid fa-check"></i> 설정 저장 및 반영</button>
     </div>
   </div>
 </div>
 
-<!-- ================= 특허로 REST-API 설정 모달 ================= -->
+<!-- ================= 모달 2: 🔍 제품 상세 및 특허 청구항 원문 증거 모달 ================= -->
+<div class="modal-overlay hide" id="productDetailModal" onclick="if(event.target===this)closeProductModal()">
+  <div class="modal-window modal-wide">
+    <div class="modal-header">
+      <div class="modal-title-wrap">
+        <i class="fa-solid fa-elevator text-green" style="font-size:22px;"></i>
+        <div>
+          <h2 id="modalProdName">THE EL</h2>
+          <span class="modal-sub" id="modalProdCode">P-THEEL · 초고속/초고층 프리미엄 엘리베이터</span>
+        </div>
+      </div>
+      <button class="modal-close-btn" onclick="closeProductModal()"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+
+    <div class="modal-body">
+      <div class="modal-prod-summary" id="modalProdSummary">
+        <!-- 요약 정보 -->
+      </div>
+
+      <div class="modal-section-title">
+        <i class="fa-solid fa-certificate text-green"></i>
+        <span>적용 기술 피처 및 등록특허 청구항 증거 (<b id="modalFeatureCount">0</b>건)</span>
+      </div>
+
+      <div class="feature-evidence-list" id="modalFeatureList">
+        <!-- JS 동적 렌더링 -->
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn-secondary" onclick="closeProductModal()">닫기</button>
+    </div>
+  </div>
+</div>
+
+<!-- ================= 모달 3: 특허로 REST-API 설정 모달 ================= -->
 <div class="modal-overlay hide" id="kipoModal" onclick="if(event.target===this)closeKipoModal()">
   <div class="modal-window" style="max-width: 520px;">
     <div class="modal-header">
