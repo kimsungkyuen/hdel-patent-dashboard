@@ -142,6 +142,21 @@ const server = http.createServer(async (req, res) => {
         }
       }
 
+      // 8-1. 핵심 Focus 기술분야 관리자 설정 API
+      if (pathname === '/api/config/key-focus') {
+        if (method === 'GET') {
+          return sendJson(res, 200, { success: true, data: kipoService.getKeyFocus() });
+        }
+        if (method === 'POST') {
+          const body = await parseBody(req);
+          if (body && Array.isArray(body.keyFocusList)) {
+            const updated = kipoService.updateKeyFocus(body.keyFocusList);
+            return sendJson(res, 200, { success: true, data: updated, message: "핵심 기술분야 설정이 저장되었습니다." });
+          }
+          return sendJson(res, 400, { success: false, error: "keyFocusList array is required" });
+        }
+      }
+
       // 9. 사내 제품군 현황 API
       if (pathname === '/api/company/products' && method === 'GET') {
         const products = kipoService.getCompanyProducts();
@@ -179,13 +194,15 @@ const server = http.createServer(async (req, res) => {
   }
 
   // ================= 정적 파일 서빙 =================
-  let targetFile = 'dashboard_v3.html';
-  if (pathname === '/' || pathname === '/v3' || pathname === '/index.html') {
+  let targetFile = 'index.html';
+  if (pathname === '/' || pathname === '/index.html') {
+    targetFile = 'index.html';
+  } else if (pathname === '/legacy') {
+    targetFile = 'index_legacy.html';
+  } else if (pathname === '/v3') {
     targetFile = 'dashboard_v3.html';
   } else if (pathname === '/atlas') {
     targetFile = 'atlas.html';
-  } else if (pathname === '/legacy') {
-    targetFile = 'index_legacy.html';
   } else {
     targetFile = pathname.startsWith('/') ? pathname.substring(1) : pathname;
   }
@@ -200,8 +217,8 @@ const server = http.createServer(async (req, res) => {
 
   fs.stat(filePath, (err, stats) => {
     if (err || !stats.isFile()) {
-      // 404 발생 시 dashboard_v3.html 서빙 (SPA 지원)
-      filePath = path.join(PUBLIC_DIR, 'dashboard_v3.html');
+      // 404 발생 시 index.html 서빙 (SPA 지원)
+      filePath = path.join(PUBLIC_DIR, 'index.html');
     }
 
     const ext = path.extname(filePath).toLowerCase();
@@ -220,9 +237,7 @@ const server = http.createServer(async (req, res) => {
 
 server.listen(PORT, () => {
   console.log(`====================================================`);
-  console.log(`🚀 현대엘리베이터 IPMS 경영진 통합 포털 v3 실행 완료!`);
-  console.log(`🌐 [신규 v3 경영진 대시보드]: http://localhost:${PORT}/v3`);
-  console.log(`🌐 [사내 정밀 아틀라스 v2.2]: http://localhost:${PORT}/atlas`);
-  console.log(`🌐 [기존 v2 대시보드 보존]: http://localhost:${PORT}/legacy`);
+  console.log(`🚀 현대엘리베이터 IPMS 특허 현황 모니터링 포털 실행 완료!`);
+  console.log(`🌐 [기본 대시보드]: http://localhost:${PORT}/`);
   console.log(`====================================================`);
 });
