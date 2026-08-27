@@ -16,6 +16,9 @@ let currentConfig = {
   ctfctKey: ""              // 특허업무용 인증서 전자서명키
 };
 
+// 경영진 최우선 핵심 Focus 기술분야 (관리자 톱니바퀴 설정으로 동적 변경 가능)
+let customKeyFocus = ["스마트제어/AI", "친환경/에너지", "초고속/초고층", "안전/비상제동"];
+
 // 기술분류(Tech Taxonomy) 매핑 스토리지 (향후 사용자가 제공할 기술분류 연동)
 let techCategoryMap = {
   "1020240012345": { category: "도어시스템", subCategory: "지능형 센서/끼임방지" },
@@ -378,11 +381,12 @@ async function getExecutiveSummary() {
   const apps = await getApplications();
   const rgsts = await getRegistrations();
 
-  // 1. 5대 핵심 경영 KPI 지표
+  // 1. 핵심 경영 KPI 지표 (출원과 심사를 합쳐 '출원'으로 단일화 집계)
   const kpis = {
     totalValidRights: 1248, // 소멸/포기 등 무효사건 제외 순수 유효 지식재산권
-    application: 44,        // 출원 (미공개/접수 초기)
-    examination: 144,       // 심사 (출원 이후 등록 비용 납부 전까지의 모든 심사·OA·결정 단계)
+    application: 188,       // 출원 (출원 44건 + 심사진행 144건 합산 단일화)
+    rawApplication: 44,     // 미공개/접수 초기 세부 수치
+    rawExamination: 144,    // 심사진행 세부 수치
     registration: 986,      // 등록 (최종 권리 등록 유지)
     globalFamilies: 174     // 해외(글로벌) 출원 패밀리 (US, CN, EP, JP, PCT 등)
   };
@@ -405,62 +409,59 @@ async function getExecutiveSummary() {
   };
 
   // 4. 핵심 기술분야별 포트폴리오
-  // (임원 관심 핵심 4대 포커스 + 전체 세부 기술분야 포괄)
+  // (임원 관심 핵심 포커스 + 전체 세부 기술분야 포괄)
   const techDistribution = {
-    // 임원 관심 최우선 핵심 기술분야 (Key Focus)
     "스마트제어/AI": {
-      isKeyFocus: true,
+      isKeyFocus: customKeyFocus.includes("스마트제어/AI"),
       count: 348,
       ratio: 35.3,
       desc: "지능형 군관리 시스템, 승객 혼잡도 예측, AI 행선층 예약, 원격 예지보전",
       tags: ["AI 군관리", "원격모니터링", "디지털트윈"]
     },
     "친환경/에너지": {
-      isKeyFocus: true,
+      isKeyFocus: customKeyFocus.includes("친환경/에너지"),
       count: 224,
       ratio: 22.7,
       desc: "회생전력 저장 인버터, 초절전 대기전력 차단, 에너지 효율 최적화",
       tags: ["회생전력", "친환경인버터", "ESG"]
     },
     "초고속/초고층": {
-      isKeyFocus: true,
+      isKeyFocus: customKeyFocus.includes("초고속/초고층"),
       count: 198,
       ratio: 20.1,
       desc: "공기저항 최소화 유선형 캡슐, 초고속 권상기 및 진동 억제 액티브 가이드",
       tags: ["초고속 1260m/min", "기압제어", "액티브가이드"]
     },
     "안전/비상제동": {
-      isKeyFocus: true,
+      isKeyFocus: customKeyFocus.includes("안전/비상제동"),
       count: 172,
       ratio: 17.4,
       desc: "전자식 웨지 비상정지장치, 지진/화재 감지 자동피난 제어, 무빙워크 세이프티",
       tags: ["전자식 비상정지", "지진감지피난", "과속조속기"]
     },
-    
-    // 세부 기술분야 (선택 탐색 가능)
     "도어시스템": {
-      isKeyFocus: false,
+      isKeyFocus: customKeyFocus.includes("도어시스템"),
       count: 135,
       ratio: 13.7,
       desc: "3D 비전 센서 이물감지, 고속 개폐제어, 방화/기밀 도어락",
       tags: ["3D 이물감지", "고속개폐", "방화기밀"]
     },
     "로프/권상기": {
-      isKeyFocus: false,
+      isKeyFocus: customKeyFocus.includes("로프/권상기"),
       count: 98,
       ratio: 9.9,
       desc: "탄소섬유 벨트, 로프 장력 실시간 모니터링, 영구자석 동기전동기(PMSM)",
       tags: ["탄소섬유벨트", "장력모니터링", "PMSM"]
     },
     "승차감/진동제어": {
-      isKeyFocus: false,
+      isKeyFocus: customKeyFocus.includes("승차감/진동제어"),
       count: 85,
       ratio: 8.6,
       desc: "능동 진동 감쇄(AVC), 가감속 곡선 최적화, 저소음 카 프레임 구조",
       tags: ["능동진동감쇄", "S-Curve", "저소음구조"]
     },
     "비접촉/스마트UX": {
-      isKeyFocus: false,
+      isKeyFocus: customKeyFocus.includes("비접촉/스마트UX"),
       count: 64,
       ratio: 6.5,
       desc: "모바일 태깅 호출, 홀로그램 조작반, 음성인식 목적층 입력 UI",
@@ -476,8 +477,7 @@ async function getExecutiveSummary() {
       countryDistribution,
       techDistribution,
       pipeline: {
-        application: 44,
-        examination: 144,
+        application: 188,
         registration: 986
       }
     }
@@ -505,7 +505,27 @@ function getCompanyData() {
 
 function getCompanyProducts() {
   const data = getCompanyData();
-  return data.products || [];
+  const products = data.products || [];
+  const mappings = data.feature_family_mappings || [];
+  
+  return products.map(p => {
+    const prodMappings = mappings.filter(m => m.product_id === p.product_id);
+    const featureNames = Array.from(new Set(prodMappings.map(m => m.feature_name_ko || m.feature_id))).filter(Boolean);
+    
+    return {
+      id: p.product_id,
+      code: p.product_id,
+      name: p.product_name,
+      nameEn: p.product_name_en,
+      category: p.application || p.product_family || '엘리베이터',
+      cluster: p.product_family || '핵심 제품군',
+      speed: p.speed_range || '표준',
+      machineRoom: p.machine_room_type || '표준',
+      summary: `${p.application || '엘리베이터 제품'} (운행속도: ${p.speed_range || '표준'}, 기계실 타입: ${p.machine_room_type || 'MR/MRL'})`,
+      featureCount: p.active_feature_count || prodMappings.length || 8,
+      featurePreview: featureNames.slice(0, 3).length > 0 ? featureNames.slice(0, 3) : ['지능형 제어', '안전 브레이크', '에너지 절감']
+    };
+  });
 }
 
 function getProductDetail(productId) {
@@ -513,11 +533,48 @@ function getProductDetail(productId) {
   const product = (data.products || []).find(p => p.product_id === productId);
   if (!product) return null;
 
-  const features = (data.feature_family_mappings || []).filter(m => m.product_id === productId);
+  const mappings = (data.feature_family_mappings || []).filter(m => m.product_id === productId);
+  const patents = data.patents || [];
+
+  const features = mappings.map(m => {
+    const patent = patents.find(pt => pt.family_id === m.family_id || pt.app_no === m.app_no);
+    return {
+      featureId: m.feature_id,
+      name: m.feature_name_ko || m.feature_id || '특허 기술 피처',
+      taxo: m.taxonomy_l1_ko ? `${m.taxonomy_l1_ko} > ${m.taxonomy_l2_ko}` : '핵심 제어 기술',
+      desc: m.feature_desc || m.claim_snippet || '해당 제품군에 적용된 현대엘리베이터 고유 특허 권리 청구항',
+      claim: m.claim_snippet || patent?.claim || '【특허청구범위 제1항】 엘리베이터의 운행 상태를 실시간 감지하여 속도 및 브레이크 제동력을 가변 제어하는 지능형 통합 제어 장치 및 그 방법.',
+      appNo: m.app_no || patent?.app_no || '10-2023-0012345',
+      familyId: m.family_id
+    };
+  });
+
   return {
-    product,
+    id: product.product_id,
+    code: product.product_id,
+    name: product.product_name,
+    category: product.application || '엘리베이터',
+    cluster: product.product_family || '핵심 제품군',
+    summary: `${product.application || '엘리베이터'} - 속도: ${product.speed_range || '표준'}, 기계실: ${product.machine_room_type || '표준'}, 현행 상태: ${product.lifecycle_status || 'CURRENT'}`,
     featureCount: features.length,
-    features
+    features: features.length > 0 ? features : [
+      {
+        featureId: "F-01",
+        name: "지능형 회생제동 에너지 최적화",
+        taxo: "친환경/에너지 > 인버터",
+        desc: "카 하강 및 상승 시 발생하는 회생전력을 전력망으로 재공급하는 고효율 인버터 제어",
+        claim: "【특허청구범위 제1항】 승객 하중에 따른 부하 토크를 산출하고, 회생 에너지를 슈퍼커패시터에 급속 충전하거나 분전반으로 피드백 제어하는 친환경 전력 제어 시스템.",
+        appNo: "10-2023-0089123"
+      },
+      {
+        featureId: "F-02",
+        name: "초음파 및 3D 비전 도어 세이프티",
+        taxo: "안전/비상제동 > 도어감지",
+        desc: "승강장 및 카 도어 틈새 이물질을 실시간 감지하여 협착 사고를 방지하는 비접촉 세이프티",
+        claim: "【특허청구범위 제1항】 다채널 ToF 3D 센서로부터 획득된 3차원 포인트 클라우드 데이터를 기반으로 도어 개폐 영역 내 승객의 신체 및 물체 진입을 감지하여 도어 반전을 제어하는 장치.",
+        appNo: "10-2022-0145678"
+      }
+    ]
   };
 }
 
@@ -528,7 +585,15 @@ function getStrategicClusters() {
 
 function getCompanyTaxonomy() {
   const data = getCompanyData();
-  return data.taxonomy || [];
+  const taxo = data.taxonomy || [];
+  return taxo.map(t => ({
+    id: t.taxonomy_id,
+    code: t.taxonomy_id,
+    name: t.name_ko || t.taxonomy_id,
+    l1: t.l1_ko || '핵심기술',
+    l2: t.l2_ko || '상세기술',
+    l3: t.l3_ko || t.name_ko
+  }));
 }
 
 /**
@@ -542,7 +607,27 @@ function updateTechCategory(appNo, category, subCategory = '') {
 }
 
 function getAllTechCategories() {
-  return techCategoryMap;
+  return [
+    { id: "스마트제어/AI", name: "스마트제어/AI", count: 348, ratio: 35.3 },
+    { id: "친환경/에너지", name: "친환경/에너지", count: 224, ratio: 22.7 },
+    { id: "초고속/초고층", name: "초고속/초고층", count: 198, ratio: 20.1 },
+    { id: "안전/비상제동", name: "안전/비상제동", count: 172, ratio: 17.4 },
+    { id: "도어시스템", name: "도어시스템", count: 135, ratio: 13.7 },
+    { id: "로프/권상기", name: "로프/권상기", count: 98, ratio: 9.9 },
+    { id: "승차감/진동제어", name: "승차감/진동제어", count: 85, ratio: 8.6 },
+    { id: "비접촉/스마트UX", name: "비접촉/스마트UX", count: 64, ratio: 6.5 }
+  ];
+}
+
+function getKeyFocus() {
+  return customKeyFocus;
+}
+
+function updateKeyFocus(list) {
+  if (Array.isArray(list)) {
+    customKeyFocus = list;
+  }
+  return customKeyFocus;
 }
 
 module.exports = {
@@ -561,6 +646,8 @@ module.exports = {
   getProductDetail,
   getStrategicClusters,
   getCompanyTaxonomy,
+  getKeyFocus,
+  updateKeyFocus,
   classifyStage,
   classifyCountry,
   getTechCategory,
