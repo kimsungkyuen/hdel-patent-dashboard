@@ -49,7 +49,7 @@ function sendJson(res, statusCode, data) {
 
 const server = http.createServer(async (req, res) => {
   const parsedUrl = url.parse(req.url, true);
-  const pathname = parsedUrl.pathname;
+  const pathname = decodeURIComponent(parsedUrl.pathname);
   const method = req.method;
 
   // CORS 프리플라이트 처리
@@ -163,7 +163,7 @@ const server = http.createServer(async (req, res) => {
         return sendJson(res, 200, { success: true, data: products });
       }
 
-      // 10. 사내 특정 제품 상세 및 피처/특허패밀리 API
+      // 10. 사내 특정 제품 상세 및 매핑 특허 API
       if (pathname.startsWith('/api/company/products/') && method === 'GET') {
         const productId = pathname.replace('/api/company/products/', '');
         const detail = kipoService.getProductDetail(productId);
@@ -173,16 +173,38 @@ const server = http.createServer(async (req, res) => {
         return sendJson(res, 200, { success: true, data: detail });
       }
 
-      // 11. 사내 6대 전략 클러스터 API
-      if (pathname === '/api/company/clusters' && method === 'GET') {
-        const clusters = kipoService.getStrategicClusters();
-        return sendJson(res, 200, { success: true, data: clusters });
-      }
-
-      // 12. 사내 표준 134개 기술분류(Taxonomy) API
+      // 11. 사내 표준 134개 기술분류(Taxonomy) API
       if (pathname === '/api/company/taxonomy' && method === 'GET') {
         const taxonomy = kipoService.getCompanyTaxonomy();
         return sendJson(res, 200, { success: true, data: taxonomy });
+      }
+
+      // 12. 특정 기술분류 매핑 특허 목록 API
+      if (pathname.startsWith('/api/company/patents/by-taxonomy/') && method === 'GET') {
+        const taxoId = pathname.replace('/api/company/patents/by-taxonomy/', '');
+        const result = kipoService.getPatentsByTaxonomy(taxoId);
+        return sendJson(res, 200, { success: true, data: result });
+      }
+
+      // 13. 특정 제품 매핑 특허 목록 API
+      if (pathname.startsWith('/api/company/patents/by-product/') && method === 'GET') {
+        const productId = pathname.replace('/api/company/patents/by-product/', '');
+        const result = kipoService.getProductDetail(productId);
+        return sendJson(res, 200, { success: true, data: result });
+      }
+
+      // 14. 특정 기술분야 매핑 특허 목록 API
+      if (pathname.startsWith('/api/company/patents/by-tech/') && method === 'GET') {
+        const techName = pathname.replace('/api/company/patents/by-tech/', '');
+        const result = kipoService.getPatentsByTechCategory(techName);
+        return sendJson(res, 200, { success: true, data: result });
+      }
+
+      // 15. 단일 특허 상세 정보 API (특허로/KIPRIS 연동)
+      if (pathname.startsWith('/api/company/patent/') && method === 'GET') {
+        const patentId = pathname.replace('/api/company/patent/', '');
+        const result = kipoService.getPatentDetail(patentId);
+        return sendJson(res, 200, { success: true, data: result });
       }
 
       // 알 수 없는 API 엔드포인트
@@ -217,7 +239,6 @@ const server = http.createServer(async (req, res) => {
 
   fs.stat(filePath, (err, stats) => {
     if (err || !stats.isFile()) {
-      // 404 발생 시 index.html 서빙 (SPA 지원)
       filePath = path.join(PUBLIC_DIR, 'index.html');
     }
 
