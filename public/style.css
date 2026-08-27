@@ -1551,3 +1551,220 @@ body {
   .pipeline-flow-3step { grid-template-columns: 1fr; }
   .flow-arrow { display: none; }
 }
+
+
+/* ================= 특허 목록 테이블 및 특허 상세/KIPRIS 모달 스타일 ================= */
+.focus-hint {
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--ink-faint);
+  margin-left: 8px;
+}
+
+.patent-table-filter-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 14px;
+  background: var(--hdel-green-tint);
+  border: 1px solid var(--hdel-green-line);
+  border-radius: var(--radius-sm);
+  margin-bottom: 14px;
+  font-size: 13px;
+}
+
+.patent-count-text {
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.click-guide-hint {
+  font-size: 12px;
+  color: var(--hdel-green-deep);
+  font-weight: 600;
+}
+
+.patent-list-table-wrap {
+  max-height: 460px;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: #FFFFFF;
+}
+
+.patent-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  text-align: left;
+}
+
+.patent-table th {
+  position: sticky;
+  top: 0;
+  background: #F8FAF9;
+  color: var(--ink-soft);
+  font-weight: 700;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border);
+  z-index: 2;
+}
+
+.patent-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid #F0F2F5;
+  vertical-align: middle;
+}
+
+.patent-table tr:hover {
+  background: #F9FBF9;
+}
+
+.reg-link-btn {
+  background: var(--hdel-green-tint);
+  border: 1px solid var(--hdel-green-line);
+  color: var(--hdel-green-deep);
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-family: monospace;
+  font-weight: 700;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.reg-link-btn:hover {
+  background: var(--hdel-green);
+  color: #FFFFFF;
+  border-color: var(--hdel-green);
+  box-shadow: 0 2px 6px rgba(0, 136, 80, 0.2);
+}
+
+.badge-patent-tag {
+  background: #E8F5EE;
+  color: var(--hdel-green-deep);
+  border: 1px solid var(--hdel-green-line);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.badge-utility-tag {
+  background: #FEF0C7;
+  color: #B54708;
+  border: 1px solid #FEDF89;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.badge-status-reg {
+  background: #D1FADF;
+  color: #027A48;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.badge-status-app {
+  background: var(--blue-soft);
+  color: var(--blue);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.patent-meta-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  background: #F8FAF9;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 14px 18px;
+  margin-bottom: 18px;
+}
+
+.meta-item {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.meta-k {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--ink-soft);
+  text-transform: uppercase;
+}
+
+.meta-v {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.highlight-mono {
+  font-family: monospace;
+  letter-spacing: 0.3px;
+}
+
+.detail-section {
+  margin-bottom: 18px;
+}
+
+.detail-section-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--ink);
+  margin-bottom: 8px;
+}
+
+.detail-box {
+  background: #FFFFFF;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 14px 16px;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--ink-soft);
+  max-height: 180px;
+  overflow-y: auto;
+}
+
+.claim-box {
+  background: #FAFBF9;
+  border-left: 3px solid var(--hdel-green);
+  font-family: "Pretendard", sans-serif;
+  color: var(--ink);
+}
+
+.btn-kipris {
+  background: #1B2A4A;
+  color: #FFFFFF !important;
+  padding: 9px 18px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 700;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  transition: all 0.2s ease;
+}
+
+.btn-kipris:hover {
+  background: #0D1A33;
+  box-shadow: 0 4px 12px rgba(27, 42, 74, 0.25);
+  transform: translateY(-1px);
+}
