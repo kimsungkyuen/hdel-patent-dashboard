@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>현대엘리베이터 IPMS — 특허 현황 경영진 포털 v3</title>
+  <link rel="stylesheet" href="dashboard_v3.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+  <!-- 최상단 글로벌 헤더 -->
+  <header class="hdel-header">
+    <div class="header-left">
+      <div class="hdel-logo-badge">
+        <i class="fa-solid fa-elevator"></i>
+        <span>HYUNDAI ELEVATOR</span>
+      </div>
+      <div class="header-title-group">
+        <h1 class="header-title">IPMS 경영진 특허 현황 포털 <span class="v-tag">v3.0 Live</span></h1>
+        <p class="header-subtitle">특허청 특허로 Live REST API 실시간 연동 & 사내 표준 기술/제품 포트폴리오</p>
+      </div>
+    </div>
+    <div class="header-right">
+      <!-- 뷰 스위처 네비게이션 -->
+      <nav class="view-switcher">
+        <a href="/v3" class="view-btn active"><i class="fa-solid fa-chart-pie"></i> 경영 대시보드</a>
+        <a href="/atlas" class="view-btn"><i class="fa-solid fa-layer-group"></i> 사내 아틀라스 v2.2</a>
+        <a href="/legacy" class="view-btn"><i class="fa-solid fa-clock-rotate-left"></i> 이전 뷰</a>
+      </nav>
+      <div class="api-live-indicator" id="liveStatusBadge">
+        <span class="pulse-dot"></span>
+        <span class="status-text">특허로 Live 연결됨</span>
+      </div>
+      <button class="header-icon-btn" id="btnRefresh" title="실시간 데이터 새로고침">
+        <i class="fa-solid fa-rotate"></i>
+      </button>
+      <button class="header-icon-btn" id="btnConfig" title="특허로 API 설정">
+        <i class="fa-solid fa-gear"></i>
+      </button>
+    </div>
+  </header>
+
+  <!-- 메인 대시보드 컨테이너 -->
+  <main class="dashboard-container">
+
+    <!-- SECTION 1: 특허로 실시간 5대 핵심 KPI -->
+    <section class="kpi-section">
+      <div class="kpi-grid">
+        <!-- 1. 총 보유 지식재산권 (무효/소멸 제외) -->
+        <div class="kpi-card highlight-main">
+          <div class="kpi-icon-wrap"><i class="fa-solid fa-award"></i></div>
+          <div class="kpi-content">
+            <span class="kpi-label">총 보유 지식재산권</span>
+            <div class="kpi-value-row">
+              <span class="kpi-value" id="kpiTotal">1,248</span>
+              <span class="kpi-unit">건</span>
+            </div>
+            <span class="kpi-subtext"><i class="fa-solid fa-shield-check"></i> 소멸·포기·거절 무효 건 제외 (유효 권리)</span>
+          </div>
+        </div>
+
+        <!-- 2. 출원 -->
+        <div class="kpi-card">
+          <div class="kpi-icon-wrap blue"><i class="fa-solid fa-file-signature"></i></div>
+          <div class="kpi-content">
+            <span class="kpi-label">출원</span>
+            <div class="kpi-value-row">
+              <span class="kpi-value" id="kpiApp">44</span>
+              <span class="kpi-unit">건</span>
+            </div>
+            <span class="kpi-subtext">특허청 접수 완료 건</span>
+          </div>
+        </div>
+
+        <!-- 3. 심사 (공개/심사 단일화) -->
+        <div class="kpi-card">
+          <div class="kpi-icon-wrap orange"><i class="fa-solid fa-magnifying-glass-chart"></i></div>
+          <div class="kpi-content">
+            <span class="kpi-label">심사</span>
+            <div class="kpi-value-row">
+              <span class="kpi-value" id="kpiExam">144</span>
+              <span class="kpi-unit">건</span>
+            </div>
+            <span class="kpi-subtext">등록 전 심사진행 계류 건</span>
+          </div>
+        </div>
+
+        <!-- 4. 등록 -->
+        <div class="kpi-card">
+          <div class="kpi-icon-wrap green"><i class="fa-solid fa-certificate"></i></div>
+          <div class="kpi-content">
+            <span class="kpi-label">등록</span>
+            <div class="kpi-value-row">
+              <span class="kpi-value" id="kpiReg">986</span>
+              <span class="kpi-unit">건</span>
+            </div>
+            <span class="kpi-subtext">최종 설정등록 독점권 확보</span>
+          </div>
+        </div>
+
+        <!-- 5. 해외 출원 -->
+        <div class="kpi-card">
+          <div class="kpi-icon-wrap purple"><i class="fa-solid fa-globe"></i></div>
+          <div class="kpi-content">
+            <span class="kpi-label">해외 출원</span>
+            <div class="kpi-value-row">
+              <span class="kpi-value" id="kpiGlobal">174</span>
+              <span class="kpi-unit">건</span>
+            </div>
+            <span class="kpi-subtext">글로벌 해외 패밀리 출원</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 2: 3단계 라이프사이클 파이프라인 -->
+    <section class="pipeline-section">
+      <div class="section-header">
+        <h2 class="section-title"><i class="fa-solid fa-diagram-project"></i> 특허 라이프사이클 3단계 파이프라인</h2>
+        <span class="section-badge">실시간 현황</span>
+      </div>
+      <div class="pipeline-card">
+        <div class="pipeline-flow">
+          <!-- STEP 1: 출원 -->
+          <div class="pipe-step">
+            <div class="pipe-step-header">
+              <span class="step-badge">STEP 1</span>
+              <span class="step-title">출원</span>
+            </div>
+            <div class="pipe-step-body">
+              <span class="step-num" id="pipeApp">44</span><span class="step-unit">건</span>
+              <p class="step-desc">신규 기술 접수 및 방식심사</p>
+            </div>
+          </div>
+
+          <div class="pipe-arrow"><i class="fa-solid fa-chevron-right"></i></div>
+
+          <!-- STEP 2: 심사 -->
+          <div class="pipe-step active">
+            <div class="pipe-step-header">
+              <span class="step-badge">STEP 2</span>
+              <span class="step-title">심사</span>
+            </div>
+            <div class="pipe-step-body">
+              <span class="step-num" id="pipeExam">144</span><span class="step-unit">건</span>
+              <p class="step-desc">실질심사, 공개 및 의견서/보정서 대응</p>
+            </div>
+          </div>
+
+          <div class="pipe-arrow"><i class="fa-solid fa-chevron-right"></i></div>
+
+          <!-- FINAL: 등록 -->
+          <div class="pipe-step final">
+            <div class="pipe-step-header">
+              <span class="step-badge">FINAL</span>
+              <span class="step-title">등록</span>
+            </div>
+            <div class="pipe-step-body">
+              <span class="step-num" id="pipeReg">986</span><span class="step-unit">건</span>
+              <p class="step-desc">설정등록 완료 및 독점 권리 유지</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 3: 사내 기준 포트폴리오 (3-Way 탭) -->
+    <section class="portfolio-section">
+      <div class="portfolio-tabs-header">
+        <div class="tabs-left">
+          <button class="tab-btn active" data-tab="tab-clusters">
+            <i class="fa-solid fa-bullseye"></i> 사내 6대 전략 클러스터
+          </button>
+          <button class="tab-btn" data-tab="tab-products">
+            <i class="fa-solid fa-boxes-stacked"></i> 사내 31대 제품별 포트폴리오
+          </button>
+          <button class="tab-btn" data-tab="tab-taxonomy">
+            <i class="fa-solid fa-sitemap"></i> 사내 134개 표준 기술분류
+          </button>
+        </div>
+        <div class="tabs-right">
+          <div class="search-box">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <input type="text" id="portfolioSearchInput" placeholder="제품명, 기술분류, 부품, 특허 키워드 검색...">
+          </div>
+        </div>
+      </div>
+
+      <!-- 탭 1: 사내 6대 전략 클러스터 -->
+      <div class="tab-pane active" id="tab-clusters">
+        <div class="cluster-intro-bar">
+          <p><i class="fa-solid fa-circle-info"></i> 현대엘리베이터 R&D 및 사업전략 중심의 <strong>6대 전략 기술 클러스터</strong>별 특허 패밀리 및 핵심 KPI 현황입니다.</p>
+        </div>
+        <div class="cluster-grid" id="clusterGrid">
+          <!-- JS로 6대 클러스터 카드 렌더링 -->
+        </div>
+      </div>
+
+      <!-- 탭 2: 사내 31대 제품별 포트폴리오 -->
+      <div class="tab-pane" id="tab-products">
+        <div class="product-filter-bar">
+          <div class="filter-chips" id="productClassFilter">
+            <button class="chip active" data-class="ALL">전체 제품군 (31)</button>
+            <button class="chip" data-class="CURRENT_PRODUCT">주력 승강기 (11)</button>
+            <button class="chip" data-class="SERVICE">디지털 서비스/MIRI (6)</button>
+            <button class="chip" data-class="SPECIAL">특수용도/주차/물류 (8)</button>
+            <button class="chip" data-class="OPTION">옵션/패키지/기타 (6)</button>
+          </div>
+          <span class="product-count-summary" id="productCountSummary">총 31개 제품 표시 중</span>
+        </div>
+        <div class="product-grid" id="productGrid">
+          <!-- JS로 제품 카드 렌더링 -->
+        </div>
+      </div>
+
+      <!-- 탭 3: 사내 134개 표준 기술분류 탐색기 -->
+      <div class="tab-pane" id="tab-taxonomy">
+        <div class="taxonomy-layout">
+          <div class="taxonomy-l1-list" id="taxonomyL1List">
+            <!-- L1 대분류 버튼 목록 -->
+          </div>
+          <div class="taxonomy-detail-view" id="taxonomyDetailView">
+            <!-- 선택된 L1의 L2/L3 세부 트리 -->
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 4: 정밀 시스템 맵 아틀라스 바로가기 배너 -->
+    <section class="atlas-banner-section">
+      <div class="atlas-banner">
+        <div class="banner-left">
+          <div class="banner-tag"><i class="fa-solid fa-cubes"></i> 6-Zone System Map v2.2</div>
+          <h3 class="banner-title">기계실 · 승강로 · 카 · 승강장 · 피트 · SW 6대 영역별 정밀 배치도</h3>
+          <p class="banner-desc">특허 청구항 원문 증거 기반으로 31개 제품과 234개 엔지니어링 객체를 3차원 배치 공간에서 정밀 탐색할 수 있습니다.</p>
+        </div>
+        <div class="banner-right">
+          <a href="/atlas" class="btn-launch-atlas">
+            <span>HDEL IP Atlas v2.2 실행</span>
+            <i class="fa-solid fa-arrow-up-right-from-square"></i>
+          </a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- 제품 상세 및 청구항 발췌 모달 -->
+  <div class="modal-backdrop" id="productModalBackdrop">
+    <div class="modal-dialog product-modal">
+      <div class="modal-header">
+        <div class="modal-title-wrap">
+          <span class="modal-badge" id="modalProductBadge">CURRENT_PRODUCT</span>
+          <h3 class="modal-title" id="modalProductName">N:EX</h3>
+          <span class="modal-subtitle" id="modalProductSub">중저속 스마트 엘리베이터</span>
+        </div>
+        <button class="modal-close-btn" id="btnCloseProductModal"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="modal-body">
+        <!-- 제품 메타 정보 -->
+        <div class="product-meta-cards">
+          <div class="meta-item"><span class="label">적용 분야</span><span class="val" id="modalApp">아파트/오피스</span></div>
+          <div class="meta-item"><span class="label">기계실 타입</span><span class="val" id="modalMR">MR/MRL</span></div>
+          <div class="meta-item"><span class="label">속도 범위</span><span class="val" id="modalSpeed">60~150 m/min</span></div>
+          <div class="meta-item"><span class="label">보유 피처 수</span><span class="val highlight" id="modalFeatureCnt">18개</span></div>
+        </div>
+
+        <!-- 제품 핵심 피처 & 특허 패밀리 청구항 목록 -->
+        <div class="feature-list-section">
+          <h4 class="sub-section-title"><i class="fa-solid fa-microchip"></i> 연결된 핵심 기술 피처 & 특허 청구항 증거</h4>
+          <div class="feature-items" id="modalFeatureList">
+            <!-- JS로 피처 목록 렌더링 -->
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 특허로 API 설정 모달 -->
+  <div class="modal-backdrop" id="configModalBackdrop">
+    <div class="modal-dialog config-modal">
+      <div class="modal-header">
+        <h3 class="modal-title"><i class="fa-solid fa-gear"></i> 특허로 Live REST API 설정</h3>
+        <button class="modal-close-btn" id="btnCloseConfigModal"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="form-label">특허고객번호 (Applicant Code)</label>
+          <input type="text" class="form-control" id="cfgApplicantCode" value="130000002156">
+          <span class="form-help">현대엘리베이터 공식 특허고객번호</span>
+        </div>
+        <div class="form-group">
+          <label class="form-label">특허로 인증서 서명키 (ctfctKey)</label>
+          <input type="password" class="form-control" id="cfgCtfctKey" placeholder="특허로 전용 인증키">
+          <span class="form-help">특허청 특허로 실시간 Live 연동용 보안 서명키</span>
+        </div>
+        <div class="form-group">
+          <label class="form-label">API 게이트웨이 엔드포인트</label>
+          <input type="text" class="form-control" id="cfgApiBase" value="https://www.patent.go.kr/smart/webservice/">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="btnCancelConfig">취소</button>
+        <button class="btn btn-primary" id="btnSaveConfig">설정 저장 및 즉시 동기화</button>
+      </div>
+    </div>
+  </div>
+
+  <footer class="hdel-footer">
+    <p>© 2026 HYUNDAI ELEVATOR CO., LTD. Intellectual Property Management System (IPMS) — Executive Portal v3.0</p>
+  </footer>
+
+  <script src="dashboard_v3.js"></script>
+</body>
+</html>
