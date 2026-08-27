@@ -588,11 +588,13 @@ function getCompanyTaxonomy() {
   const taxo = data.taxonomy || [];
   return taxo.map(t => ({
     id: t.taxonomy_id,
-    code: t.taxonomy_id,
-    name: t.name_ko || t.taxonomy_id,
-    l1: t.l1_ko || '핵심기술',
-    l2: t.l2_ko || '상세기술',
-    l3: t.l3_ko || t.name_ko
+    code: `TAX-${String(t.taxonomy_id).padStart(3, '0')}`,
+    name: t.category_l3 || `기술항목 ${t.taxonomy_id}`,
+    l1: t.category_l1 || '기타',
+    l2: t.category_l2 || '세부기술',
+    l3: t.category_l3 || '',
+    scope: t.representative_scope || '',
+    group: t.product_group || '엘리베이터'
   }));
 }
 
