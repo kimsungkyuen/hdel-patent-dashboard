@@ -1,16 +1,84 @@
 "use strict";
 
 /* ==========================================================================
-   HDEL 특허 현황 모니터링 대시보드 스크립트 (통합 v3 - 정합성 강화 버전)
-   - 특허로 REST-API 기반 유효 권리 정합성 (출원 188건, 등록 944건, 총 1,132건)
-   - 무효(소멸/포기/거절/만료) 엄격 제외 & 유효 실용신안 2건 반영
+   HDEL 특허 현황 모니터링 대시보드 스크립트 (통합 v4 - UI 복구 및 북마크 고도화)
+   - 특허청 특허로 REST-API 기반 유효 권리 정합성 (총 1,132건, 실용신안 2건)
    - 사내 IP 포트폴리오 3-Way 탭 (기술분야별 / 제품별 31개 / 표준 기술분류 134개)
-   - 기술분야 / 제품 / 기술분류별 특허 목록 및 등록번호 클릭 시 KIPRIS/특허로 상세 모달 연동
+   - 계층형 트리 / 카드 그리드 완벽 렌더링 (CSS 클래스 정합성 100%)
+   - 항목별 즐겨찾기(Bookmark ⭐) 시스템 & 모아보기 필터
+   - KIPRIS DOI 및 대표 청구항 1항 상세 모달 연동
    ========================================================================== */
 
 const $ = id => document.getElementById(id);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
+// ================= 0. 즐겨찾기(Bookmark) 상태 관리 =================
+const BOOKMARKS_KEY = 'hdel_ip_bookmarks_v1';
+let bookmarks = {
+  tech: [],      // 기술분야 이름 목록
+  product: [],   // 제품 ID 목록
+  taxonomy: []   // 분류 ID 목록
+};
+
+function loadBookmarks() {
+  try {
+    const raw = localStorage.getItem(BOOKMARKS_KEY);
+    if (raw) {
+      bookmarks = JSON.parse(raw);
+      if (!Array.isArray(bookmarks.tech)) bookmarks.tech = [];
+      if (!Array.isArray(bookmarks.product)) bookmarks.product = [];
+      if (!Array.isArray(bookmarks.taxonomy)) bookmarks.taxonomy = [];
+    }
+  } catch (e) {
+    console.warn('Failed to load bookmarks:', e);
+  }
+  updateBookmarkBadges();
+}
+
+function saveBookmarks() {
+  try {
+    localStorage.setItem(BOOKMARKS_KEY, JSON.stringify(bookmarks));
+  } catch (e) {
+    console.warn('Failed to save bookmarks:', e);
+  }
+  updateBookmarkBadges();
+}
+
+function updateBookmarkBadges() {
+  if ($('techBookmarkCount')) $('techBookmarkCount').textContent = bookmarks.tech.length;
+  if ($('prodBookmarkCount')) $('prodBookmarkCount').textContent = bookmarks.product.length;
+  if ($('taxoBookmarkCount')) $('taxoBookmarkCount').textContent = bookmarks.taxonomy.length;
+}
+
+function isBookmarked(type, id) {
+  if (!bookmarks[type]) return false;
+  return bookmarks[type].includes(id);
+}
+
+function toggleBookmark(type, id, event) {
+  if (event) {
+    event.stopPropagation();
+    event.preventDefault();
+  }
+  if (!bookmarks[type]) bookmarks[type] = [];
+  const idx = bookmarks[type].indexOf(id);
+  let added = false;
+  if (idx > -1) {
+    bookmarks[type].splice(idx, 1);
+  } else {
+    bookmarks[type].push(id);
+    added = true;
+  }
+  saveBookmarks();
+
+  showToast(added ? '⭐ 즐겨찾기에 추가되었습니다.' : '즐겨찾기에서 제거되었습니다.');
+
+  if (type === 'tech') renderTechPortfolio();
+  else if (type === 'product') renderProductsGrid();
+  else if (type === 'taxonomy') renderTaxonomyTree();
+}
+
+// 전역 데이터 캐시
 let currentTechData = {};
 let activeTechCategoryFilter = 'ALL';
 let currentTechSearchTerm = '';
@@ -39,6 +107,8 @@ const TECH_ICONS = {
 // ================= 1. 실시간 API 데이터 로딩 =================
 
 async function loadExecutiveDashboard() {
+  loadBookmarks();
+
   try {
     const res = await fetch('/api/dashboard/executive-summary');
     if (res.ok) {
@@ -53,7 +123,6 @@ async function loadExecutiveDashboard() {
     renderExecutiveDashboard(getFallbackData());
   }
 
-  // 사내 제품 및 기술분류 데이터 비동기 병렬 로드
   loadCompanyProducts();
   loadCompanyTaxonomy();
 }
@@ -149,19 +218,16 @@ function getFallbackData() {
 function renderExecutiveDashboard(data) {
   if (!data) return;
 
-  // 2-1. 상단 4대 KPI 카드 렌더링
   const k = data.kpis || {};
   if ($('kpi-total-valid')) $('kpi-total-valid').textContent = (k.totalValidRights || 1132).toLocaleString();
   if ($('kpi-application')) $('kpi-application').textContent = (k.application || 188).toLocaleString();
   if ($('kpi-registration')) $('kpi-registration').textContent = (k.registration || 944).toLocaleString();
   if ($('kpi-global')) $('kpi-global').textContent = (k.globalFamilies || 174).toLocaleString();
 
-  // 2-2. 2단계 권리 파이프라인 렌더링
   const p = data.pipeline || {};
   if ($('pipe-app-val')) $('pipe-app-val').textContent = `${(p.application || 188).toLocaleString()}건`;
   if ($('pipe-reg-val')) $('pipe-reg-val').textContent = `${(p.registration || 944).toLocaleString()}건`;
 
-  // 2-3. 권리 유형별 분포 렌더링 (실용신안 2건 등 정합성 확보)
   const t = data.typeDistribution || {};
   const totalCount = k.totalValidRights || 1132;
   if ($('badge-total-count')) $('badge-total-count').textContent = `총 ${totalCount.toLocaleString()}건`;
@@ -187,7 +253,6 @@ function renderExecutiveDashboard(data) {
   if ($('ratio-utility')) $('ratio-utility').textContent = `(${utility.ratio}%)`;
   if ($('bar-utility')) $('bar-utility').style.width = `${Math.max(utility.ratio, 0.5)}%`;
 
-  // 2-4. 국가별 현황 렌더링
   const c = data.countryDistribution || {};
   const cList = $('countryList');
   if (cList && Object.keys(c).length > 0) {
@@ -213,7 +278,6 @@ function renderExecutiveDashboard(data) {
     }).join('');
   }
 
-  // 2-5. 기술분야별 포트폴리오 렌더링
   currentTechData = data.techDistribution || {};
   renderTechPortfolio();
 }
@@ -231,35 +295,38 @@ function renderTechPortfolio() {
   const keyFocusEntries = entries.filter(([name, info]) => info.isKeyFocus);
   keyGrid.innerHTML = keyFocusEntries.map(([name, info]) => {
     const icon = TECH_ICONS[name] || 'fa-microchip';
-    const tagsHtml = (info.tags || []).map(t => `<span class="focus-tag">${esc(t)}</span>`).join('');
+    const tagsHtml = (info.tags || []).map(t => `<span class="fc-tag">${esc(t)}</span>`).join('');
+    const bookmarked = isBookmarked('tech', name);
 
     return `
-      <div class="key-focus-card" onclick="openTechPatentModal('${esc(name)}')">
-        <div class="focus-card-top">
-          <div class="focus-icon-box"><i class="fa-solid ${icon}"></i></div>
-          <div class="focus-title-wrap">
-            <span class="focus-category-title">${esc(name)}</span>
-            <span class="focus-badge-core"><i class="fa-solid fa-star text-yellow"></i> 핵심 Focus</span>
+      <div class="focus-card" onclick="openTechPatentModal('${esc(name)}')">
+        <div class="fc-head">
+          <div class="fc-icon-title">
+            <i class="fa-solid ${icon}"></i>
+            <b>${esc(name)}</b>
+          </div>
+          <div style="display:flex; align-items:center; gap:6px;">
+            <button class="btn-bookmark ${bookmarked ? 'bookmarked' : ''}" onclick="toggleBookmark('tech', '${esc(name)}', event)" title="${bookmarked ? '즐겨찾기 해제' : '즐겨찾기 추가'}">
+              <i class="${bookmarked ? 'fa-solid' : 'fa-regular'} fa-star"></i>
+            </button>
+            <span class="fc-ratio">${info.ratio || '0.0'}%</span>
           </div>
         </div>
-        <div class="focus-stat-row">
-          <div class="focus-stat">
-            <span class="stat-num">${(info.count || 0).toLocaleString()}</span><small>건</small>
-          </div>
-          <div class="focus-share-pill">${info.ratio || '0.0'}% 점유</div>
-        </div>
-        <p class="focus-desc">${esc(info.desc || '')}</p>
-        <div class="focus-tags-row">${tagsHtml}</div>
-        <div class="card-click-prompt"><i class="fa-solid fa-arrow-right"></i> 매핑 특허 목록 보기</div>
+        <div class="fc-count">${(info.count || 0).toLocaleString()}<span>건</span></div>
+        <div class="fc-desc">${esc(info.desc || '')}</div>
+        <div class="fc-tags">${tagsHtml}</div>
       </div>
     `;
   }).join('');
 
   // 3-2. 전체 기술분야 상세 카드 (하단 필터/검색 적용)
   let filteredEntries = entries;
-  if (activeTechCategoryFilter !== 'ALL') {
+  if (activeTechCategoryFilter === 'BOOKMARK') {
+    filteredEntries = filteredEntries.filter(([name]) => isBookmarked('tech', name));
+  } else if (activeTechCategoryFilter !== 'ALL') {
     filteredEntries = filteredEntries.filter(([name]) => name === activeTechCategoryFilter);
   }
+
   if (currentTechSearchTerm.trim() !== '') {
     const q = currentTechSearchTerm.toLowerCase();
     filteredEntries = filteredEntries.filter(([name, info]) => {
@@ -271,29 +338,35 @@ function renderTechPortfolio() {
   }
 
   if (filteredEntries.length === 0) {
-    detailGrid.innerHTML = `<div class="empty-msg"><i class="fa-solid fa-circle-exclamation"></i> 검색 조건에 맞는 기술분야가 없습니다.</div>`;
+    if (activeTechCategoryFilter === 'BOOKMARK') {
+      detailGrid.innerHTML = `<div class="empty-msg" style="grid-column: 1 / -1;"><i class="fa-solid fa-star text-yellow"></i> 등록된 즐겨찾기 기술분야가 없습니다. 카드의 별표(⭐)를 눌러 등록해보세요.</div>`;
+    } else {
+      detailGrid.innerHTML = `<div class="empty-msg" style="grid-column: 1 / -1;"><i class="fa-solid fa-circle-exclamation"></i> 검색 조건에 맞는 기술분야가 없습니다.</div>`;
+    }
     return;
   }
 
   detailGrid.innerHTML = filteredEntries.map(([name, info]) => {
     const icon = TECH_ICONS[name] || 'fa-microchip';
-    const isFocus = info.isKeyFocus;
-    const tagsHtml = (info.tags || []).map(t => `<span class="tech-tag">${esc(t)}</span>`).join('');
+    const tagsHtml = (info.tags || []).map(t => `<span class="td-tag">${esc(t)}</span>`).join('');
+    const bookmarked = isBookmarked('tech', name);
 
     return `
-      <div class="tech-card ${isFocus ? 'is-focus' : ''}" onclick="openTechPatentModal('${esc(name)}')">
-        <div class="tech-card-header">
-          <div class="tech-title-wrap">
-            <i class="fa-solid ${icon} text-green"></i>
-            <h4>${esc(name)}</h4>
+      <div class="td-card" onclick="openTechPatentModal('${esc(name)}')">
+        <div class="td-head">
+          <div class="td-title">
+            <i class="fa-solid ${icon}"></i>
+            <b>${esc(name)}</b>
           </div>
-          <span class="tech-count-badge">${(info.count || 0).toLocaleString()}건</span>
+          <div style="display:flex; align-items:center; gap:6px;">
+            <button class="btn-bookmark ${bookmarked ? 'bookmarked' : ''}" onclick="toggleBookmark('tech', '${esc(name)}', event)" title="${bookmarked ? '즐겨찾기 해제' : '즐겨찾기 추가'}">
+              <i class="${bookmarked ? 'fa-solid' : 'fa-regular'} fa-star"></i>
+            </button>
+            <span class="td-val">${(info.count || 0).toLocaleString()}건</span>
+          </div>
         </div>
-        <div class="tech-bar-wrap">
-          <div class="tech-bar" style="width: ${Math.min(100, Math.max(10, (info.count / 350) * 100))}%;"></div>
-        </div>
-        <p class="tech-card-desc">${esc(info.desc || '')}</p>
-        <div class="tech-tags-list">${tagsHtml}</div>
+        <div class="td-desc">${esc(info.desc || '')}</div>
+        <div class="td-tags">${tagsHtml}</div>
       </div>
     `;
   }).join('');
@@ -303,7 +376,11 @@ function selectTechFilter(cat) {
   activeTechCategoryFilter = cat;
   const chips = document.querySelectorAll('#techFilterChips .chip');
   chips.forEach(c => {
-    if (c.textContent.trim() === cat || (cat === 'ALL' && c.textContent.trim() === '전체 기술분야')) {
+    if (
+      (cat === 'BOOKMARK' && c.id === 'chip-tech-bookmark') ||
+      (cat === 'ALL' && c.textContent.includes('전체')) ||
+      (cat !== 'ALL' && cat !== 'BOOKMARK' && c.textContent.trim() === cat)
+    ) {
       c.classList.add('active');
     } else {
       c.classList.remove('active');
@@ -338,9 +415,12 @@ function renderProductsGrid() {
   if (!grid) return;
 
   let filtered = allProductsList;
-  if (activeProductCategory !== 'ALL') {
+  if (activeProductCategory === 'BOOKMARK') {
+    filtered = filtered.filter(p => isBookmarked('product', p.id));
+  } else if (activeProductCategory !== 'ALL') {
     filtered = filtered.filter(p => (p.cluster || '').includes(activeProductCategory) || (p.category || '').includes(activeProductCategory));
   }
+
   if (currentProductSearchTerm.trim() !== '') {
     const q = currentProductSearchTerm.toLowerCase();
     filtered = filtered.filter(p => 
@@ -351,23 +431,41 @@ function renderProductsGrid() {
   }
 
   if (filtered.length === 0) {
-    grid.innerHTML = `<div class="empty-msg"><i class="fa-solid fa-circle-exclamation"></i> 검색된 제품이 없습니다.</div>`;
+    if (activeProductCategory === 'BOOKMARK') {
+      grid.innerHTML = `<div class="empty-msg" style="grid-column: 1 / -1;"><i class="fa-solid fa-star text-yellow"></i> 등록된 즐겨찾기 제품이 없습니다. 제품 카드의 별표(⭐)를 눌러 등록해보세요.</div>`;
+    } else {
+      grid.innerHTML = `<div class="empty-msg" style="grid-column: 1 / -1;"><i class="fa-solid fa-circle-exclamation"></i> 검색된 제품이 없습니다.</div>`;
+    }
     return;
   }
 
   grid.innerHTML = filtered.map(p => {
+    const bookmarked = isBookmarked('product', p.id);
+    const coreTechs = p.coreTechs || [];
+
     return `
       <div class="product-card" onclick="openProductModal('${esc(p.id)}')">
-        <div class="product-card-head">
-          <div class="prod-badge-cluster">${esc(p.cluster || '핵심 제품군')}</div>
-          <span class="prod-patent-pill"><i class="fa-solid fa-certificate"></i> 매핑 특허 ${p.patentCount || 0}건</span>
+        <div>
+          <div class="prod-card-top">
+            <span class="prod-code-badge">${esc(p.code)} · ${esc(p.cluster || '핵심 제품군')}</span>
+            <div style="display:flex; align-items:center; gap:6px;">
+              <button class="btn-bookmark ${bookmarked ? 'bookmarked' : ''}" onclick="toggleBookmark('product', '${esc(p.id)}', event)" title="${bookmarked ? '즐겨찾기 해제' : '즐겨찾기 추가'}">
+                <i class="${bookmarked ? 'fa-solid' : 'fa-regular'} fa-star"></i>
+              </button>
+              <span class="prod-patent-count"><i class="fa-solid fa-certificate"></i> 특허 ${p.patentCount || 0}건</span>
+            </div>
+          </div>
+          <h4 class="prod-name">${esc(p.name)} <span style="font-size:12px; font-weight:400; color:var(--ink-soft);">${esc(p.nameEn || '')}</span></h4>
+          <p class="prod-summary">${esc(p.summary || '')}</p>
+          <div class="prod-features-preview">
+            <span class="prod-feat-tag"><i class="fa-solid fa-gauge-high"></i> ${esc(p.speed || '표준')}</span>
+            <span class="prod-feat-tag"><i class="fa-solid fa-building"></i> ${esc(p.machineRoom || 'MRL/MR')}</span>
+            ${coreTechs.slice(0, 2).map(ct => `<span class="prod-feat-tag">${esc(ct)}</span>`).join('')}
+          </div>
         </div>
-        <h4 class="product-name">${esc(p.name)}</h4>
-        <span class="product-code">${esc(p.code)} · ${esc(p.nameEn || '')}</span>
-        <p class="product-summary">${esc(p.summary || '')}</p>
-        <div class="product-specs-row">
-          <span><i class="fa-solid fa-gauge-high"></i> ${esc(p.speed || '표준')}</span>
-          <span><i class="fa-solid fa-building"></i> ${esc(p.machineRoom || 'MRL/MR')}</span>
+        <div class="prod-card-footer" style="margin-top:12px; padding-top:10px; border-top:1px solid #F1F5F9; display:flex; justify-content:space-between; align-items:center; font-size:11.5px; color:var(--ink-soft);">
+          <span><i class="fa-solid fa-file-lines"></i> 대표 청구항 연계</span>
+          <span style="color:var(--hdel-green-deep); font-weight:700;">상세보기 <i class="fa-solid fa-arrow-right"></i></span>
         </div>
       </div>
     `;
@@ -378,7 +476,11 @@ function filterProducts(cat) {
   activeProductCategory = cat;
   const chips = document.querySelectorAll('#productCategoryFilters .chip');
   chips.forEach(c => {
-    if (c.textContent.startsWith(cat) || (cat === 'ALL' && c.textContent.startsWith('전체'))) {
+    if (
+      (cat === 'BOOKMARK' && c.id === 'chip-prod-bookmark') ||
+      (cat === 'ALL' && c.textContent.includes('전체')) ||
+      (cat !== 'ALL' && cat !== 'BOOKMARK' && c.textContent.includes(cat))
+    ) {
       c.classList.add('active');
     } else {
       c.classList.remove('active');
@@ -392,7 +494,7 @@ function onProductSearch(val) {
   renderProductsGrid();
 }
 
-// ================= 5. [탭 3] 표준 기술분류 체계 =================
+// ================= 5. [탭 3] 표준 기술분류 체계 (계층 트리 렌더링) =================
 
 async function loadCompanyTaxonomy() {
   try {
@@ -413,9 +515,12 @@ function renderTaxonomyTree() {
   if (!container) return;
 
   let filtered = allTaxonomyList;
-  if (activeTaxonomyCategory !== 'ALL') {
+  if (activeTaxonomyCategory === 'BOOKMARK') {
+    filtered = filtered.filter(t => isBookmarked('taxonomy', t.id));
+  } else if (activeTaxonomyCategory !== 'ALL') {
     filtered = filtered.filter(t => (t.l1 || '').includes(activeTaxonomyCategory) || (t.group || '').includes(activeTaxonomyCategory));
   }
+
   if (currentTaxonomySearchTerm.trim() !== '') {
     const q = currentTaxonomySearchTerm.toLowerCase();
     filtered = filtered.filter(t => 
@@ -428,41 +533,78 @@ function renderTaxonomyTree() {
   }
 
   if (filtered.length === 0) {
-    container.innerHTML = `<div class="empty-msg"><i class="fa-solid fa-circle-exclamation"></i> 검색된 기술분류 항목이 없습니다.</div>`;
+    if (activeTaxonomyCategory === 'BOOKMARK') {
+      container.innerHTML = `<div class="empty-msg"><i class="fa-solid fa-star text-yellow"></i> 등록된 즐겨찾기 기술분류 항목이 없습니다. 각 소분류의 별표(⭐)를 눌러 등록해보세요.</div>`;
+    } else {
+      container.innerHTML = `<div class="empty-msg"><i class="fa-solid fa-circle-exclamation"></i> 검색된 기술분류 항목이 없습니다.</div>`;
+    }
     return;
   }
 
-  // L1 그룹핑
-  const groups = {};
+  const l1Groups = {};
   filtered.forEach(item => {
-    const l1 = item.l1 || '기타 분류';
-    if (!groups[l1]) groups[l1] = [];
-    groups[l1].push(item);
+    const l1 = item.l1 || '기타 대분류';
+    const l2 = item.l2 || '기타 중분류';
+    if (!l1Groups[l1]) {
+      l1Groups[l1] = { totalCount: 0, l2Map: {} };
+    }
+    l1Groups[l1].totalCount++;
+    if (!l1Groups[l1].l2Map[l2]) {
+      l1Groups[l1].l2Map[l2] = [];
+    }
+    l1Groups[l1].l2Map[l2].push(item);
   });
 
-  container.innerHTML = Object.entries(groups).map(([l1Name, items]) => {
-    const rows = items.map(t => {
-      return `
-        <div class="taxo-item-card" onclick="openTaxonomyPatentModal('${t.id}', '${esc(t.name)}', '${esc(t.scope || '')}')">
-          <div class="taxo-item-header">
-            <span class="taxo-code-badge">${esc(t.code)}</span>
-            <h5 class="taxo-l3-name">${esc(t.name)}</h5>
-            <span class="taxo-pcount-pill"><i class="fa-solid fa-certificate"></i> 특허 ${t.patentCount || 0}건</span>
+  container.innerHTML = Object.entries(l1Groups).map(([l1Name, l1Data]) => {
+    const l2BoxesHtml = Object.entries(l1Data.l2Map).map(([l2Name, items]) => {
+      const l3ItemsHtml = items.map(t => {
+        const bookmarked = isBookmarked('taxonomy', t.id);
+        return `
+          <div class="taxo-l3-item" onclick="openTaxonomyPatentModal('${t.id}', '${esc(t.name)}', '${esc(t.scope || '')}')">
+            <div class="taxo-l3-main">
+              <div class="taxo-l3-left">
+                <span class="taxo-code-badge">${esc(t.code)}</span>
+                <span class="taxo-name-text" title="${esc(t.name)}">${esc(t.name)}</span>
+              </div>
+              <div class="taxo-l3-right">
+                <span class="taxo-pcount-badge">특허 ${t.patentCount || 0}건</span>
+                <button class="btn-bookmark ${bookmarked ? 'bookmarked' : ''}" onclick="toggleBookmark('taxonomy', ${t.id}, event)" title="${bookmarked ? '즐겨찾기 해제' : '즐겨찾기 추가'}">
+                  <i class="${bookmarked ? 'fa-solid' : 'fa-regular'} fa-star"></i>
+                </button>
+              </div>
+            </div>
+            <div class="taxo-scope-badge" title="${esc(t.scope || '')}">
+              ${esc(t.scope || '기술 범위 및 주요 적용 분야')}
+            </div>
           </div>
-          <div class="taxo-l2-label"><i class="fa-solid fa-angle-right"></i> ${esc(t.l2 || '')}</div>
-          <p class="taxo-scope-text">${esc(t.scope || '기술 범위 및 주요 적용 분야')}</p>
+        `;
+      }).join('');
+
+      return `
+        <div class="taxo-l2-box">
+          <div class="taxo-l2-title">
+            <span class="l2-title-text"><i class="fa-solid fa-folder-tree text-green"></i> ${esc(l2Name)}</span>
+            <span class="l2-count-badge">${items.length}개 소분류</span>
+          </div>
+          <div class="taxo-l3-list">
+            ${l3ItemsHtml}
+          </div>
         </div>
       `;
     }).join('');
 
     return `
-      <div class="taxo-group-block">
-        <div class="taxo-group-title">
-          <i class="fa-solid fa-folder-open text-green"></i>
-          <h4>${esc(l1Name)}</h4>
-          <span class="group-count">(${items.length}개 소분류)</span>
+      <div class="taxo-l1-group">
+        <div class="taxo-l1-head">
+          <div class="taxo-l1-title">
+            <i class="fa-solid fa-layer-group text-green"></i>
+            <span>${esc(l1Name)}</span>
+          </div>
+          <span class="taxo-l1-badge"><i class="fa-solid fa-sitemap"></i> ${l1Data.totalCount}개 세부 소분류</span>
         </div>
-        <div class="taxo-items-grid">${rows}</div>
+        <div class="taxo-l1-body">
+          ${l2BoxesHtml}
+        </div>
       </div>
     `;
   }).join('');
@@ -472,7 +614,11 @@ function filterTaxonomyCategory(cat) {
   activeTaxonomyCategory = cat;
   const chips = document.querySelectorAll('#taxonomyCategoryFilters .chip');
   chips.forEach(c => {
-    if (c.textContent.startsWith(cat) || (cat === 'ALL' && c.textContent.startsWith('전체'))) {
+    if (
+      (cat === 'BOOKMARK' && c.id === 'chip-taxo-bookmark') ||
+      (cat === 'ALL' && c.textContent.includes('전체')) ||
+      (cat !== 'ALL' && cat !== 'BOOKMARK' && c.textContent.includes(cat))
+    ) {
       c.classList.add('active');
     } else {
       c.classList.remove('active');
@@ -502,334 +648,3 @@ function switchPortfolioTab(tab) {
     }
   });
 }
-
-// ================= 7. 특허 목록 및 상세 모달 인터랙션 =================
-
-// 7-1. 기술분야별 특허 목록 팝업
-async function openTechPatentModal(techName) {
-  try {
-    $('patentListModalTitle').textContent = `[${techName}] 기술분야 특허 목록`;
-    $('patentListModalSub').textContent = `현대엘리베이터 핵심 기술분야 매핑 특허 자산`;
-    $('patentListTableBody').innerHTML = `<tr><td colspan="6" style="text-align:center; padding:30px;"><i class="fa-solid fa-spinner fa-spin text-green"></i> 특허 목록을 불러오는 중...</td></tr>`;
-    
-    $('patentListModal').classList.remove('hide');
-
-    const res = await fetch(`/api/company/patents/by-tech/${encodeURIComponent(techName)}`);
-    if (res.ok) {
-      const json = await res.json();
-      const data = json.data || json;
-      const patents = data.patents || [];
-      renderPatentListTable(patents);
-    }
-  } catch (err) {
-    console.error('Failed to load tech patents:', err);
-  }
-}
-
-// 7-2. 표준기술분류별 특허 목록 팝업
-async function openTaxonomyPatentModal(taxoId, taxoName, taxoScope) {
-  try {
-    $('patentListModalTitle').textContent = `[${taxoName}] 표준기술분류 매핑 특허`;
-    $('patentListModalSub').textContent = `TAX-${String(taxoId).padStart(3, '0')} · ${taxoScope || '표준기술분류 세부 특허'}`;
-    $('patentListTableBody').innerHTML = `<tr><td colspan="6" style="text-align:center; padding:30px;"><i class="fa-solid fa-spinner fa-spin text-green"></i> 특허 목록을 불러오는 중...</td></tr>`;
-    
-    $('patentListModal').classList.remove('hide');
-
-    const res = await fetch(`/api/company/patents/by-taxonomy/${taxoId}`);
-    if (res.ok) {
-      const json = await res.json();
-      const data = json.data || json;
-      const patents = data.patents || [];
-      renderPatentListTable(patents);
-    }
-  } catch (err) {
-    console.error('Failed to load taxonomy patents:', err);
-  }
-}
-
-// 특허 목록 테이블 렌더러
-function renderPatentListTable(patents) {
-  $('patentListTotalCount').textContent = patents.length;
-
-  if (patents.length === 0) {
-    $('patentListTableBody').innerHTML = `<tr><td colspan="6" style="text-align:center; padding:30px; color:var(--ink-soft);"><i class="fa-solid fa-folder-open"></i> 매핑된 등록 특허가 없습니다.</td></tr>`;
-    return;
-  }
-
-  $('patentListTableBody').innerHTML = patents.map(p => {
-    const regNo = p.reg_no || '-';
-    const isReg = regNo !== '-' && !regNo.includes('출원');
-    const rightType = p.right_type || (regNo.startsWith('20') ? '실용신안' : '특허');
-    const badgeType = rightType === '실용신안' ? 'badge-utility-tag' : 'badge-patent-tag';
-
-    return `
-      <tr>
-        <td>
-          <span class="${badgeType}">${esc(rightType)}</span>
-          <span class="${isReg ? 'badge-status-reg' : 'badge-status-app'}">${isReg ? '등록' : '출원'}</span>
-        </td>
-        <td>
-          <button class="reg-link-btn" onclick="openPatentDetailModal('${esc(p.patent_id)}')">
-            <i class="fa-solid fa-certificate"></i> ${esc(regNo)}
-          </button>
-        </td>
-        <td style="font-family:monospace; color:var(--ink-soft);">${esc(p.app_no || '-')}</td>
-        <td><b>${esc(p.title || '특허 발명의 명칭')}</b></td>
-        <td style="color:var(--ink-soft); font-size:12px;">${esc(p.reg_date || p.filing_date || '-')}</td>
-        <td>
-          <button class="btn-secondary" style="padding:4px 8px; font-size:11px;" onclick="openPatentDetailModal('${esc(p.patent_id)}')">
-            상세
-          </button>
-        </td>
-      </tr>
-    `;
-  }).join('');
-}
-
-function closePatentListModal() {
-  $('patentListModal').classList.add('hide');
-}
-
-// 7-3. 제품 상세 및 특허 청구항 모달
-async function openProductModal(productId) {
-  try {
-    const res = await fetch(`/api/company/products/${productId}`);
-    if (res.ok) {
-      const json = await res.json();
-      const p = json.data || json;
-      $('modalProdName').textContent = p.name;
-      $('modalProdCode').textContent = `${p.code} · ${p.nameEn || ''} · ${p.cluster || ''}`;
-      
-      $('modalProdSummary').innerHTML = `
-        <div class="prod-modal-badges">
-          <span class="badge-tag"><i class="fa-solid fa-gauge-high"></i> 운행속도: ${esc(p.speed)}</span>
-          <span class="badge-tag"><i class="fa-solid fa-building"></i> 기계실: ${esc(p.machineRoom)}</span>
-          <span class="badge-tag text-green"><i class="fa-solid fa-certificate"></i> 매핑 특허: ${p.patentCount || 0}건</span>
-        </div>
-        <p style="margin-top:10px; color:var(--ink-soft); font-size:13px; line-height:1.6;">${esc(p.summary)}</p>
-      `;
-
-      $('modalFeatureCount').textContent = p.patentCount || 0;
-
-      const patents = p.patents || [];
-      if (patents.length === 0) {
-        $('modalFeatureList').innerHTML = `<div class="empty-msg"><i class="fa-solid fa-folder-open"></i> 등록된 특허 청구항 정보가 없습니다.</div>`;
-      } else {
-        $('modalFeatureList').innerHTML = patents.map(pt => {
-          const regNo = pt.reg_no || '-';
-          return `
-            <div class="feature-item-card">
-              <div class="feature-head">
-                <button class="reg-link-btn" onclick="openPatentDetailModal('${esc(pt.patent_id)}')">
-                  <i class="fa-solid fa-certificate"></i> ${esc(regNo)}
-                </button>
-                <h5 class="feature-title" style="margin-left:8px;">${esc(pt.title)}</h5>
-                <span class="claim-badge">등록일: ${esc(pt.reg_date || '-')}</span>
-              </div>
-              <div class="claim-box" style="margin-top:8px;">
-                <p><b>【대표 청구항 제1항】</b> ${esc(pt.primary_claim || pt.abstract || '특허 청구항 원문이 등록되어 있습니다.')}</p>
-              </div>
-            </div>
-          `;
-        }).join('');
-      }
-
-      $('productDetailModal').classList.remove('hide');
-    }
-  } catch (err) {
-    console.error('Failed to load product detail:', err);
-  }
-}
-
-function closeProductModal() {
-  $('productDetailModal').classList.add('hide');
-}
-
-// 7-4. 특허 단일 상세 모달 (특허로 Live 서지정보 / 초록 / 청구항 / KIPRIS 연동)
-async function openPatentDetailModal(patentId) {
-  try {
-    const res = await fetch(`/api/company/patent/${patentId}`);
-    if (res.ok) {
-      const json = await res.json();
-      const p = json.data || json;
-      
-      $('detailPatentTitle').textContent = p.title || '특허 발명의 명칭';
-      $('detailRegNo').textContent = p.reg_no || '출원/심사 중';
-      $('detailAppNo').textContent = p.app_no || '-';
-      
-      const isReg = p.reg_no && !p.reg_no.includes('출원');
-      const rightType = p.right_type || (p.reg_no && p.reg_no.startsWith('20') ? '실용신안' : '특허');
-      const badgeType = rightType === '실용신안' ? 'badge-utility-tag' : 'badge-patent-tag';
-
-      $('detailRightType').innerHTML = `
-        <span class="${badgeType}">${esc(rightType)}</span>
-        <span class="${isReg ? 'badge-status-reg' : 'badge-status-app'}">${isReg ? '등록유지' : '심사진행'}</span>
-      `;
-
-      $('detailDates').textContent = `등록: ${p.reg_date || '-'} (출원: ${p.filing_date || '-'})`;
-      $('detailAbstract').textContent = p.abstract || '특허 요약 정보가 등록되어 있습니다.';
-      $('detailClaim').textContent = p.primary_claim || '【특허청구범위 제1항】 특허 청구항 원문이 등록되어 있습니다.';
-
-      // KIPRIS 다이렉트 검색 링크
-      const btnKipris = $('btnKiprisLink');
-      if (btnKipris) {
-        btnKipris.href = p.kipris_url || 'http://kpat.kipris.or.kr';
-      }
-
-      $('patentDetailModal').classList.remove('hide');
-    }
-  } catch (err) {
-    console.error('Failed to load patent detail:', err);
-  }
-}
-
-function closePatentDetailModal() {
-  $('patentDetailModal').classList.add('hide');
-}
-
-// ================= 8. 핵심 Focus 기술분야 ⚙️ 관리자 설정 모달 =================
-
-async function openKeyFocusModal() {
-  try {
-    const res = await fetch('/api/config/key-focus');
-    let keyFocusList = ["스마트제어/AI", "친환경/에너지", "초고속/초고층", "안전/비상제동"];
-    if (res.ok) {
-      const json = await res.json();
-      keyFocusList = json.data || json;
-    }
-
-    const allCats = Object.keys(currentTechData).length > 0 ? Object.keys(currentTechData) : [
-      "스마트제어/AI", "친환경/에너지", "초고속/초고층", "안전/비상제동",
-      "도어시스템", "로프/권상기", "승차감/진동제어", "비접촉/스마트UX"
-    ];
-
-    const checklist = $('keyFocusChecklist');
-    if (checklist) {
-      checklist.innerHTML = allCats.map(cat => {
-        const isChecked = keyFocusList.includes(cat);
-        return `
-          <label class="focus-check-label">
-            <input type="checkbox" value="${esc(cat)}" ${isChecked ? 'checked' : ''} />
-            <span class="check-box-custom"></span>
-            <span class="cat-name">${esc(cat)}</span>
-          </label>
-        `;
-      }).join('');
-    }
-
-    $('keyFocusModal').classList.remove('hide');
-  } catch (err) {
-    console.error('Failed to open key focus modal:', err);
-  }
-}
-
-function closeKeyFocusModal() {
-  $('keyFocusModal').classList.add('hide');
-}
-
-async function saveKeyFocusSettings() {
-  const checkboxes = document.querySelectorAll('#keyFocusChecklist input[type="checkbox"]:checked');
-  const selected = Array.from(checkboxes).map(cb => cb.value);
-
-  if (selected.length === 0) {
-    showToast('최소 1개 이상의 핵심 기술분야를 선택해주세요.');
-    return;
-  }
-
-  try {
-    const res = await fetch('/api/config/key-focus', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ keyFocusList: selected })
-    });
-
-    if (res.ok) {
-      showToast('핵심 기술분야 설정이 성공적으로 저장되었습니다.');
-      closeKeyFocusModal();
-      loadExecutiveDashboard();
-    }
-  } catch (err) {
-    showToast('설정 저장 중 오류가 발생했습니다.');
-  }
-}
-
-// ================= 9. 특허청 특허로 Live API 연동 설정 모달 =================
-
-async function openKipoModal() {
-  try {
-    const res = await fetch('/api/config');
-    if (res.ok) {
-      const json = await res.json();
-      const cfg = json.data || json;
-      if ($('cfg-apagtCd')) $('cfg-apagtCd').value = cfg.apagtCd || '130000002156';
-      if ($('cfg-ctfctKey')) $('cfg-ctfctKey').value = cfg.ctfctKey || '';
-    }
-    $('kipoModal').classList.remove('hide');
-  } catch (err) {
-    $('kipoModal').classList.remove('hide');
-  }
-}
-
-function closeKipoModal() {
-  $('kipoModal').classList.add('hide');
-}
-
-async function testKipoApi() {
-  const resultBox = $('kipoTestResult');
-  resultBox.className = 'test-result-box';
-  resultBox.innerHTML = '<i class="fa-solid fa-spinner fa-spin text-green"></i> 특허청 특허로 서버 통신 테스트 중...';
-
-  try {
-    const res = await fetch('/api/applications?pagePerRow=1');
-    if (res.ok) {
-      resultBox.innerHTML = '<span style="color:#027A48;"><i class="fa-solid fa-check"></i> 특허청 특허로 REST Web API 통신 상태 정상입니다.</span>';
-    } else {
-      resultBox.innerHTML = '<span style="color:#D92D20;"><i class="fa-solid fa-triangle-exclamation"></i> 특허청 API 응답 대기 상태입니다.</span>';
-    }
-  } catch (err) {
-    resultBox.innerHTML = `<span style="color:#D92D20;">오류: ${err.message}</span>`;
-  }
-}
-
-async function saveKipoSettings() {
-  const apagtCd = $('cfg-apagtCd').value.trim();
-  const ctfctKey = $('cfg-ctfctKey').value.trim();
-
-  try {
-    const res = await fetch('/api/config', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ apagtCd, ctfctKey })
-    });
-
-    if (res.ok) {
-      showToast('특허로 연동 설정이 저장되었습니다.');
-      closeKipoModal();
-      loadExecutiveDashboard();
-    }
-  } catch (err) {
-    showToast('설정 저장에 실패했습니다.');
-  }
-}
-
-// ================= 10. 유틸리티 (새로고침 & 토스트) =================
-
-function refreshDashboard() {
-  showToast('특허청 및 사내 특허 데이터를 새로고침합니다...');
-  loadExecutiveDashboard();
-}
-
-function showToast(msg) {
-  const toast = $('toast');
-  if (!toast) return;
-  toast.textContent = msg;
-  toast.style.display = 'block';
-  setTimeout(() => {
-    toast.style.display = 'none';
-  }, 2500);
-}
-
-// 초기 로드
-document.addEventListener('DOMContentLoaded', () => {
-  loadExecutiveDashboard();
-});
